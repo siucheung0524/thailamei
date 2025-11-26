@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Thai Trip 2026 - Hua Hin & Bangkok</title>
+    <title>泰辛束了</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,7 +63,7 @@
             ChevronDown, ChevronUp, MoreHorizontal, Clock, Users, Sun, Moon, 
             Info, CheckSquare, Thermometer, Zap, Banknote, Phone, Utensils, 
             Coffee, ShoppingBag, Camera, BedDouble, RefreshCcw, Wifi, 
-            AlertCircle, Key, Cloud, CloudRain, Wind, ExternalLink, Map as MapIcon, FileText
+            AlertCircle, Key, Cloud, CloudRain, Wind, ExternalLink, Map as MapIcon, FileText, Luggage
         } from 'lucide-react';
 
         // --- Data Source ---
@@ -318,6 +318,8 @@
                 </button>
             </div>
         );
+
+        // --- Views ---
 
         const WeatherCard = () => {
             const [weather, setWeather] = useState(null);
@@ -816,7 +818,10 @@
                 lastUpdated: null,
                 loading: false,
                 isRealData: false,
-                error: null
+                error: null,
+                model: '',
+                manufacturer: '',
+                baggage: '-'
             });
 
             const fetchFlightData = async () => {
@@ -826,9 +831,11 @@
                 
                 const API_KEY = '3f8352e5-12ae-4c99-86ba-7d451ec11900';
                 const FLIGHT_IATA = flight.flightNum;
+                const DEP_IATA = flight.origin;
+                const ARR_IATA = flight.dest;
 
                 try {
-                    const response = await fetch(`https://airlabs.co/api/v9/flight?flight_iata=${FLIGHT_IATA}&api_key=${API_KEY}`);
+                    const response = await fetch(`https://airlabs.co/api/v9/flight?flight_iata=${FLIGHT_IATA}&dep_iata=${DEP_IATA}&arr_iata=${ARR_IATA}&api_key=${API_KEY}`);
                     
                     if (!response.ok) {
                         throw new Error('API Response not ok');
@@ -864,7 +871,10 @@
                             lastUpdated: updatedTime,
                             loading: false,
                             isRealData: true,
-                            error: null
+                            error: null,
+                            model: flightData.aircraft_model || '',
+                            manufacturer: flightData.aircraft_manufacturer || '',
+                            baggage: flightData.arr_baggage || '-'
                         });
                     } else {
                         setFlightStatus(prev => ({
@@ -941,7 +951,22 @@
                         <div className="flex justify-between items-start mb-4 mt-2">
                             <div>
                                 <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Airline</p>
+                                {flight.logo && (
+                                    <div className="h-6 mb-2">
+                                        <img 
+                                            src={flight.logo} 
+                                            alt={flight.airline} 
+                                            className="h-full object-contain object-left bg-white/90 rounded px-1 py-0.5"
+                                        />
+                                    </div>
+                                )}
                                 <p className="text-xl font-bold text-[#FF9F68]">{flight.airline}</p>
+                                {/* Aircraft Info - Forced Display */}
+                                <p className="text-gray-400 text-[10px] mt-1">
+                                    {flightStatus.isRealData && flightStatus.model 
+                                        ? `${flightStatus.manufacturer} ${flightStatus.model}`
+                                        : (flight.airline === 'Starlux' ? 'Airbus A330-900neo' : 'Boeing 737-800')}
+                                </p>
                             </div>
                             <div className="text-right"> 
                                 <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Flight</p>
@@ -996,24 +1021,33 @@
                         </div>
 
                         <div className="bg-white p-8 pt-2">
-                            <div className="flex justify-between items-center mb-4">
+                            <div className="grid grid-cols-3 gap-4 mb-6">
                                 <div>
-                                    <p className="text-gray-400 text-xs font-bold uppercase">Terminal</p>
+                                    <p className="text-gray-400 text-xs font-bold uppercase mb-1">Terminal</p>
                                     <p className="text-[#0F1C20] font-bold text-lg">{flightStatus.terminal}</p>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-gray-400 text-xs font-bold uppercase">Gate</p>
+                                <div className="text-center">
+                                    <p className="text-gray-400 text-xs font-bold uppercase mb-1">Gate</p>
                                     <p className="text-[#0F1C20] font-bold text-2xl animate-pulse text-indigo-600">
                                         {flightStatus.loading ? '...' : flightStatus.gate}
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-gray-400 text-xs font-bold uppercase">Meeting</p>
+                                    <p className="text-gray-400 text-xs font-bold uppercase mb-1">Meeting</p>
                                     <p className="text-red-500 font-bold text-lg">{flight.meetingTime}</p>
                                 </div>
                             </div>
+
+                            {/* Baggage Info - Forced Display */}
+                            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
+                                    <div className="flex items-center gap-2">
+                                    <Luggage size={16} className="text-gray-400" />
+                                    <p className="text-xs font-bold text-gray-500 uppercase">行李轉盤</p>
+                                    </div>
+                                    <p className="text-[#0F1C20] font-bold text-lg">{flightStatus.isRealData ? flightStatus.baggage : 'TBA'}</p>
+                            </div>
                             
-                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center gap-3 mb-6">
+                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center gap-3 mb-2">
                                 <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                                     {flightStatus.error ? <Wifi size={16} className="text-red-500" /> : <AlertCircle size={16} />}
                                 </div>
@@ -1033,6 +1067,7 @@
                 {
                     type: '去程 Departure',
                     airline: 'Thai Lion Air',
+                    logo: 'https://dej5dgk6v2ulk.cloudfront.net/Web/resource/images/Lion_Air.svg',
                     flightNum: 'SL395',
                     date: '2026.02.25',
                     origin: 'TPE',
@@ -1048,12 +1083,13 @@
                 {
                     type: '回程 Return (G1)',
                     airline: 'Starlux',
+                    logo: 'https://logosandtypes.com/wp-content/uploads/2025/06/starlux-airlines.svg',
                     flightNum: 'JX742',
                     date: '2026.03.02',
                     origin: 'BKK',
                     dest: 'TPE',
                     scheduledDep: '13:45',
-                    scheduledArr: '18:30', // Estimate
+                    scheduledArr: '18:30',
                     duration: '03h 45m', 
                     meetingTime: '10:00',
                     note: 'Group 1 Departure (Hotel -> Airport)',
@@ -1062,12 +1098,13 @@
                 {
                     type: '回程 Return (G2)',
                     airline: 'Starlux',
+                    logo: 'https://logosandtypes.com/wp-content/uploads/2025/06/starlux-airlines.svg',
                     flightNum: 'JX746',
                     date: '2026.03.02',
                     origin: 'BKK',
                     dest: 'TPE',
                     scheduledDep: '17:40',
-                    scheduledArr: '22:20', // Estimate
+                    scheduledArr: '22:20',
                     duration: '03h 40m', 
                     meetingTime: '14:00',
                     note: 'Group 2 Departure (Hotel -> Airport)',
