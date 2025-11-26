@@ -217,6 +217,38 @@
             },
         };
 
+        // Custom Hook for Countdown
+        const useCountdown = (targetDate) => {
+            const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+            const calculateTimeLeft = () => {
+                const difference = +new Date(targetDate) - +new Date();
+                let timeLeft = {};
+
+                if (difference > 0) {
+                    timeLeft = {
+                        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                        minutes: Math.floor((difference / 1000 / 60) % 60),
+                        seconds: Math.floor((difference / 1000) % 60),
+                    };
+                } else {
+                    timeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+                }
+                return timeLeft;
+            };
+
+            useEffect(() => {
+                setTimeLeft(calculateTimeLeft());
+                const timer = setInterval(() => {
+                    setTimeLeft(calculateTimeLeft());
+                }, 1000);
+                return () => clearInterval(timer);
+            }, [targetDate]);
+
+            return timeLeft;
+        };
+
         // --- Components ---
 
         const PillNav = ({ activeTab, setActiveTab }) => {
@@ -286,40 +318,6 @@
                 </button>
             </div>
         );
-
-        // Custom Hook for Countdown
-        const useCountdown = (targetDate) => {
-            const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
-            const calculateTimeLeft = () => {
-                const difference = +new Date(targetDate) - +new Date();
-                let timeLeft = {};
-
-                if (difference > 0) {
-                    timeLeft = {
-                        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-                        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-                        minutes: Math.floor((difference / 1000 / 60) % 60),
-                        seconds: Math.floor((difference / 1000) % 60),
-                    };
-                } else {
-                    timeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
-                }
-                return timeLeft;
-            };
-
-            useEffect(() => {
-                setTimeLeft(calculateTimeLeft());
-                const timer = setInterval(() => {
-                    setTimeLeft(calculateTimeLeft());
-                }, 1000);
-                return () => clearInterval(timer);
-            }, [targetDate]);
-
-            return timeLeft;
-        };
-
-        // --- Views ---
 
         const WeatherCard = () => {
             const [weather, setWeather] = useState(null);
@@ -450,12 +448,11 @@
                 <div className="animate-fade-in pb-24">
                     <div className="px-6 mb-8">
                         <h2 className="text-4xl font-bold text-[#0F1C20] leading-tight mb-2">
-                            Discover <br/>
-                            Thailand <span className="italic font-serif font-light">with us!</span>
+                            泰泰泰泰辣辣🥵
                         </h2>
                         <div className="flex items-center gap-2 text-[#0F1C20]/60 mt-2 font-medium">
                             <Users size={18} />
-                            <span>13 人親友團</span>
+                            <span>13 人</span>
                             <span className="mx-2">•</span>
                             <span>2026.02.25 - 03.02</span>
                         </div>
@@ -557,7 +554,7 @@
 
             return (
                 <div className="animate-fade-in px-6 pb-24">
-                    <h2 className="text-3xl font-bold text-[#0F1C20] mb-6">Itinerary</h2>
+                    <h2 className="text-3xl font-bold text-[#0F1C20] mb-6">行程</h2>
                     
                     <div className="flex gap-3 overflow-x-auto pb-6 no-scrollbar">
                         {days.map((item, idx) => (
@@ -1078,7 +1075,7 @@
             return (
                 <div className="animate-fade-in px-6 pb-24 h-full flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-3xl font-bold text-[#0F1C20]">Your Tickets</h2>
+                        <h2 className="text-3xl font-bold text-[#0F1C20]">我的航班</h2>
                     </div>
 
                     <div className="space-y-6">
@@ -1257,7 +1254,7 @@
             return (
                 <div className="animate-fade-in px-6 pb-24 h-full flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-3xl font-bold text-[#0F1C20]">Trip Maps</h2>
+                        <h2 className="text-3xl font-bold text-[#0F1C20]">地圖</h2>
                     </div>
 
                     <div className="space-y-4">
@@ -1313,12 +1310,12 @@
                         <Header 
                             title={
                                 activeTab === 'home' ? '' : 
-                                activeTab === 'schedule' ? 'Trip Itinerary' :
-                                activeTab === 'hotels' ? 'Hotels' : 
-                                activeTab === 'room_list' ? 'Room Allocation' : 
-                                activeTab === 'map' ? 'Trip Map' :
-                                activeTab === 'notes' ? 'Travel Info' :
-                                'Boarding Pass'
+                                activeTab === 'schedule' ? '行程' :
+                                activeTab === 'hotels' ? '住宿' : 
+                                activeTab === 'room_list' ? '分房名單' : 
+                                activeTab === 'map' ? '地圖' :
+                                activeTab === 'notes' ? '旅行須知' :
+                                '航班資訊'
                             }
                             showBack={activeTab !== 'home'}
                             onBack={() => {
