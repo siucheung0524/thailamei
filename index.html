@@ -29,8 +29,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-// ... (前段 useCountdown, PillNav, Header, HomeView, ScheduleView, HotelsView 保持不變)
-// ... existing code ...
+// Custom Hook for Countdown
 const useCountdown = (targetDate) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
@@ -457,84 +456,109 @@ const HotelsView = () => {
 };
 
 const TicketView = () => {
-  // -------------------------------------------------------------
-  // TODO: Get your FREE API Key from https://airlabs.co/
-  // Replace the empty string below with your key: e.g., 'your-key-here'
-  // -------------------------------------------------------------
-  const API_KEY = ''; 
-
   const [flightStatus, setFlightStatus] = useState({
-    status: 'Scheduled', 
+    status: 'Scheduled',
     gate: 'TBA',
     terminal: '1',
     estimatedDep: '21:15',
     lastUpdated: null,
     loading: false,
-    isRealData: false
+    isRealData: false,
+    error: null
   });
 
   const fetchFlightData = async () => {
-    setFlightStatus(prev => ({ ...prev, loading: true }));
+    setFlightStatus(prev => ({ ...prev, loading: true, error: null }));
     
-    // Fallback Mock Data (Simulated)
-    const mockData = {
-      status: 'On Time',
-      gate: 'B4', 
-      terminal: '1',
-      estimatedDep: '21:15',
-      lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      loading: false,
-      isRealData: false
-    };
-
-    if (!API_KEY) {
-      // Simulate network delay then use mock
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setFlightStatus(mockData);
-      return;
-    }
+    const API_KEY = '3f8352e5-12ae-4c99-86ba-7d451ec11900';
+    const FLIGHT_IATA = 'SL395';
 
     try {
-      // Fetching Today's active flight from AirLabs
-      const response = await fetch(`https://airlabs.co/api/v9/flight?flight_iata=SL395&api_key=${API_KEY}`);
-      const data = await response.json();
+      const response = await fetch(`https://airlabs.co/api/v9/flight?flight_iata=${FLIGHT_IATA}&api_key=${API_KEY}`);
+      
+      if (!response.ok) {
+         throw new Error('API Response not ok');
+      }
 
-      if (data.response) {
-        // Map AirLabs data to our state
-        const f = data.response; 
-        const now = new Date();
+      const data = await response.json();
+      
+      const now = new Date();
+      const updatedTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      if (data.response && data.response.length > 0) {
+        // We found a live flight!
+        const flight = data.response[0];
+        
+        // Map AirLabs status to our UI status
+        let uiStatus = 'Scheduled';
+        if (flight.status === 'en-route' || flight.status === 'active') uiStatus = 'On Time';
+        if (flight.status === 'landed') uiStatus = 'Arrived';
+        if (flight.status === 'scheduled') uiStatus = 'Scheduled';
+        if (flight.status === 'cancelled') uiStatus = 'Cancelled';
+        if (flight.dep_delayed > 15) uiStatus = 'Delayed';
+
+        // Format estimated departure
+        let estDep = flight.dep_estimated || flight.dep_time || '21:15';
+        // Extract just HH:MM if it's a full date string
+        if (estDep.includes(' ')) {
+           estDep = estDep.split(' ')[1].substring(0, 5);
+        }
+
         setFlightStatus({
-          status: f.status || 'Scheduled',
-          gate: f.dep_gate || 'TBA',
-          terminal: f.dep_terminal || '1',
-          estimatedDep: f.dep_estimated ? f.dep_estimated.split(' ')[1] : '21:15',
-          lastUpdated: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: uiStatus,
+          gate: flight.dep_gate || 'TBA',
+          terminal: flight.dep_terminal || '1',
+          estimatedDep: estDep,
+          lastUpdated: updatedTime,
           loading: false,
-          isRealData: true
+          isRealData: true,
+          error: null
         });
       } else {
-        console.warn("Flight not found active today, using mock.");
-        setFlightStatus(mockData);
+        // No live flight found currently (common for future dates or non-daily flights not flying right now)
+        // Fallback to "Scheduled" but indicate update success
+        console.log("No live flight SL395 found at this moment.");
+        setFlightStatus(prev => ({
+          ...prev,
+          lastUpdated: updatedTime,
+          loading: false,
+          isRealData: false, // Indicate we are back to static schedule
+          error: "Flight not currently active"
+        }));
       }
-    } catch (error) {
-      console.error("API Error, using mock:", error);
-      setFlightStatus(mockData);
+
+    } catch (err) {
+      console.error("AirLabs fetch error:", err);
+      // Fallback to simulated data for demo purposes if API fails (e.g. CORS)
+      const now = new Date();
+      const updatedTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      setFlightStatus(prev => ({
+        ...prev,
+        lastUpdated: updatedTime,
+        loading: false,
+        isRealData: false,
+        error: "Connection failed, using schedule"
+      }));
     }
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchFlightData();
-    // Auto-refresh every 5 minutes
-    const interval = setInterval(fetchFlightData, 300000);
-    return () => clearInterval(interval);
+    
+    // Auto-refresh removed as per request - Manual refresh only
   }, []);
 
   const getStatusColor = (status) => {
-    const s = status.toLowerCase();
-    if (s.includes('active') || s.includes('en-route') || s.includes('time')) return 'text-green-500';
-    if (s.includes('delayed')) return 'text-red-500';
-    if (s.includes('landed')) return 'text-blue-500';
-    return 'text-white';
+    switch(status) {
+      case 'On Time': return 'text-green-500';
+      case 'Arrived': return 'text-green-600';
+      case 'Delayed': return 'text-red-500';
+      case 'Cancelled': return 'text-red-600';
+      case 'Boarding': return 'text-[#FF9F68] animate-pulse';
+      default: return 'text-white';
+    }
   };
 
   return (
@@ -557,9 +581,9 @@ const TicketView = () => {
          <div className="bg-[#0F1C20] p-8 text-white relative">
            {/* Live Indicator */}
            <div className="absolute top-6 right-6 flex items-center gap-2 bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-              <div className={`w-2 h-2 rounded-full ${flightStatus.isRealData ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]`}></div>
+              <div className={`w-2 h-2 rounded-full ${flightStatus.isRealData ? 'bg-green-500' : 'bg-gray-400'} ${flightStatus.isRealData ? 'animate-pulse' : ''} shadow-[0_0_8px_rgba(34,197,94,0.6)]`}></div>
               <span className="text-[10px] font-bold tracking-wider uppercase">
-                {flightStatus.isRealData ? 'Live (AirLabs)' : 'Simulated'}
+                {flightStatus.isRealData ? 'Live Data' : 'Scheduled'}
               </span>
            </div>
 
@@ -578,7 +602,7 @@ const TicketView = () => {
              <div className="text-xs text-gray-400">2026.02.25</div>
              <div className={`text-sm font-bold ${getStatusColor(flightStatus.status)} flex items-center gap-1`}>
                 {flightStatus.status}
-                {flightStatus.status.includes('ime') && <CheckSquare size={12} />}
+                {(flightStatus.status === 'On Time' || flightStatus.status === 'Arrived') && <CheckSquare size={12} />}
              </div>
              <div className="text-xs text-gray-400">04h 00m</div>
            </div>
@@ -601,13 +625,13 @@ const TicketView = () => {
              </div>
              <div className="text-right">
                 <span className="block text-gray-500 mb-1">Estimated</span>
-                <span className={flightStatus.status.includes('Delayed') ? 'text-red-400' : 'text-white'}>
+                <span className={flightStatus.status === 'Delayed' ? 'text-red-400' : 'text-white'}>
                   {flightStatus.estimatedDep} (+1)
                 </span>
              </div>
            </div>
 
-           {/* Decorative Circles */}
+           {/* Decorative Circles for the "tear" effect */}
            <div className="absolute -bottom-4 -left-4 w-8 h-8 bg-[#C4E0E0] rounded-full z-20"></div>
            <div className="absolute -bottom-4 -right-4 w-8 h-8 bg-[#C4E0E0] rounded-full z-20"></div>
          </div>
@@ -638,11 +662,11 @@ const TicketView = () => {
             
             <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center gap-3 mb-6">
                <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                 <AlertCircle size={16} />
+                 {flightStatus.error ? <Wifi size={16} className="text-red-500" /> : <AlertCircle size={16} />}
                </div>
                <div className="text-xs text-gray-600">
                   <span className="font-bold text-[#0F1C20] block mb-0.5">Note</span>
-                  No Online Check-in available.
+                  {flightStatus.error ? `Using schedule (${flightStatus.error})` : 'No Online Check-in available.'}
                </div>
             </div>
 
@@ -656,13 +680,13 @@ const TicketView = () => {
                    }}></div>
                  ))}
                </div>
-               <p className="absolute bottom-1 text-[10px] font-mono tracking-[0.2em] text-[#0F1C20]">SL395-TPE-DMK-LIVE</p>
+               <p className="absolute bottom-1 text-[10px] font-mono tracking-[0.2em] text-[#0F1C20]">
+                 SL395-TPE-DMK-{flightStatus.isRealData ? 'LIVE' : 'SCHED'}
+               </p>
             </div>
 
             <div className="mt-4 flex justify-between items-center text-[10px] text-gray-400 font-mono">
-               <span>
-                 Source: {flightStatus.isRealData ? 'AirLabs (Real-time)' : 'System (Simulated)'}
-               </span>
+               <span>Source: {flightStatus.isRealData ? 'AirLabs (Live)' : 'Schedule'}</span>
                <span>Updated: {flightStatus.lastUpdated || '--:--'}</span>
             </div>
          </div>
@@ -671,8 +695,6 @@ const TicketView = () => {
   );
 };
 
-// ... (NotesView, MapView, App 保持不變)
-// ... existing code ...
 const NotesView = () => {
   const [checklist, setChecklist] = useState([
     { id: 1, text: "護照 (效期6個月以上)", checked: false },
