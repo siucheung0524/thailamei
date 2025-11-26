@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>泰辛束了</title>
+    <title>Thai Trip 2026 - Hua Hin & Bangkok</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -977,7 +977,7 @@
                             <div className="text-right">
                                 <span className="block text-gray-500 mb-1">{isExpanded ? 'Estimated' : 'Arrives'}</span>
                                 <span className={`text-sm font-bold ${flightStatus.status === 'Delayed' ? 'text-red-400' : 'text-white'}`}>
-                                    {flightStatus.estimatedArr} (+1)
+                                    {flightStatus.estimatedArr}{flight.arrivalNextDay ? ' (+1)' : ''}
                                 </span>
                             </div>
                         </div>
@@ -1041,8 +1041,9 @@
                     scheduledArr: '00:15',
                     duration: '04h 00m',
                     meetingTime: '19:45',
-                    note: 'No Online Check-in available. (Flight not currently active in sim)',
-                    noCheckIn: true
+                    note: 'No Online Check-in available.',
+                    noCheckIn: true,
+                    arrivalNextDay: true
                 },
                 {
                     type: '回程 Return (G1)',
@@ -1055,7 +1056,8 @@
                     scheduledArr: '18:30', // Estimate
                     duration: '03h 45m', 
                     meetingTime: '10:00',
-                    note: 'Group 1 Departure (Hotel -> Airport)'
+                    note: 'Group 1 Departure (Hotel -> Airport)',
+                    arrivalNextDay: false
                 },
                 {
                     type: '回程 Return (G2)',
@@ -1068,7 +1070,8 @@
                     scheduledArr: '22:20', // Estimate
                     duration: '03h 40m', 
                     meetingTime: '14:00',
-                    note: 'Group 2 Departure (Hotel -> Airport)'
+                    note: 'Group 2 Departure (Hotel -> Airport)',
+                    arrivalNextDay: false
                 }
             ];
 
