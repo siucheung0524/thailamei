@@ -115,7 +115,6 @@
         };
 
         // --- Global Data Sources ---
-        
         const TRIP_DATA = {
             '2/25': {
                 title: "Departure Night",
@@ -134,7 +133,12 @@
                 icon: <Sun size={20} />,
                 events: [
                     { time: "09:00", title: "換錢小分隊出動", desc: "協助大家換華欣兩日花費", icon: "banknote" },
-                    { time: "10:00", title: "包車前往華欣", desc: "車程約 3-3.5 小時，中途停 7-11/Amazon", icon: "car" },
+                    { 
+                        time: "10:00", 
+                        title: "包車前往華欣", 
+                        desc: "出發前請於飯店附近 7-11/Café Amazon 購買早餐及補給品，之後搭車前往華欣 (車程約 3-3.5 小時)", 
+                        icon: "car" 
+                    },
                     { time: "13:00", title: "抵達飯店", desc: "The Standard Hua Hin", icon: "home" },
                     { time: "14:00", title: "午餐 Nong JJ", desc: "在地知名餐廳", icon: "utensils", link: "https://maps.app.goo.gl/SjoAAn4g1RwRJu6y5" },
                     { time: "15:30", title: "自由活動", desc: "享受飯店設施或海灘", icon: "coffee" },
@@ -555,9 +559,13 @@
 
             const activeWeather = isHuaHin ? (weatherHH || FALLBACK_WEATHER) : (weatherBKK || FALLBACK_WEATHER);
             const locationName = isHuaHin ? "Hua Hin, Thailand" : "Bangkok, Thailand";
-            const bgColor = isHuaHin 
-                ? "bg-gradient-to-br from-[#c2410c] to-[#ea580c]" 
-                : "bg-gradient-to-br from-[#0F1C20]/90 via-[#1a2e33]/85 to-[#2E5C55]/80";
+            
+            // Background color logic for smooth transition
+            const bkkBg = "bg-gradient-to-br from-[#0F1C20]/90 via-[#1a2e33]/85 to-[#2E5C55]/80";
+            const hhBg = "bg-gradient-to-br from-[#c2410c] to-[#ea580c]";
+            const currentBg = isHuaHin ? hhBg : bkkBg;
+
+            // Content key for re-triggering fade-in
             const contentKey = isHuaHin ? 'hh' : 'bkk';
 
             const current = activeWeather.current;
@@ -570,7 +578,10 @@
 
             return (
                 <div className="mx-6 mb-6 cursor-pointer group" onClick={() => setIsHuaHin(!isHuaHin)}>
-                    <div className={`relative rounded-[35px] p-6 text-white overflow-hidden shadow-xl transition-colors duration-500 ${bgColor} flex flex-col justify-between h-[320px]`}>
+                    <div 
+                        className={`relative rounded-[35px] p-6 text-white overflow-hidden shadow-xl transition-colors duration-500 flex flex-col justify-between h-[320px]`}
+                        style={{ background: isHuaHin ? 'linear-gradient(to bottom right, #c2410c, #ea580c)' : 'linear-gradient(to bottom right, #0F1C20, #1a2e33, #2E5C55)' }}
+                    >
                         
                         {/* Decorative Glow */}
                         <div className="absolute top-[-50%] left-[-20%] w-[200px] h-[200px] bg-white opacity-10 blur-[80px] rounded-full pointer-events-none z-0"></div>
@@ -588,7 +599,7 @@
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <span className="text-xs font-bold bg-white/10 px-2 py-1 rounded-lg backdrop-blur-sm">{formattedDate}</span>
+                                    <span className="text-xs font-bold bg-black/30 px-2 py-1 rounded-lg backdrop-blur-sm">{formattedDate}</span>
                                 </div>
                             </div>
 
@@ -925,7 +936,7 @@
                                     <div className="flex justify-between items-center mb-1">
                                         <h4 className="font-bold text-[#0F1C20]">Room {room.id}</h4>
                                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${room.id === 1 && hotel !== 'asai' ? 'bg-[#0F1C20] text-white' : 'bg-[#FF9F68]/20 text-[#FF9F68]'}`}>
-                                            {room.type.includes('King') || room.type.includes('Triple') ? (room.type.includes('Triple') ? 'Triple' : 'King') : 'Twin'}
+                                            {room.type}
                                         </span>
                                     </div>
                                     <p className="text-sm text-gray-600 font-bold">{room.name}</p>
@@ -1337,6 +1348,202 @@
                             />
                         ))}
                      </div>
+                </div>
+            );
+        };
+
+        const MapView = () => {
+            const maps = [
+                {
+                    title: "美食地圖 Food Guide",
+                    desc: "精選曼谷必吃餐廳 & 街頭小吃",
+                    url: "https://maps.app.goo.gl/tg2TQGomWeauXkN66",
+                    color: "bg-[#FF9F68]",
+                    textColor: "text-[#0F1C20]",
+                    icon: <Utensils size={24} />
+                },
+                {
+                    title: "購物地圖 Shopping",
+                    desc: "曼谷購物中心 & 夜市攻略",
+                    url: "https://maps.app.goo.gl/op7Xk2frKrfWRcrL8",
+                    color: "bg-[#C4E0E0]",
+                    textColor: "text-[#0F1C20]",
+                    icon: <ShoppingBag size={24} />
+                },
+                {
+                    title: "咖啡廳地圖 Cafe Hopping",
+                    desc: "網美咖啡廳 & 特色下午茶",
+                    url: "https://maps.app.goo.gl/NHbWvGn2wFna6bTe6",
+                    color: "bg-[#0F1C20]",
+                    textColor: "text-white",
+                    icon: <Coffee size={24} />
+                }
+            ];
+
+            return (
+                <div className="animate-fade-in px-6 pb-24 pt-24 h-full flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-3xl font-bold text-[#0F1C20]">地圖</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                        {maps.map((map, idx) => (
+                            <a 
+                                key={idx}
+                                href={map.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`block ${map.color} rounded-[30px] p-6 shadow-lg transform transition-transform hover:scale-[1.02] relative overflow-hidden group min-h-[160px] flex flex-col justify-between`}
+                            >
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full translate-x-10 -translate-y-10 blur-2xl"></div>
+                                
+                                <div className="flex justify-between items-start relative z-10">
+                                    <div className={`p-3 rounded-full bg-white/20 ${map.textColor} backdrop-blur-sm`}>
+                                        {map.icon}
+                                    </div>
+                                    <ExternalLink size={20} className={`${map.textColor} opacity-60`} />
+                                </div>
+                                
+                                <div className="mt-4 relative z-10">
+                                    <h3 className={`text-2xl font-bold ${map.textColor} mb-1`}>{map.title}</h3>
+                                    <p className={`text-sm opacity-80 ${map.textColor} font-normal`}>{map.desc}</p>
+                                </div>
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const NotesView = () => {
+            const [checklist, setChecklist] = useState([
+                { id: 1, text: "檢查護照效期 (至少 6 個月以上！)", checked: false },
+                { id: 2, text: "先跟主管請假 / 告知", checked: false },
+                { id: 3, text: "在台灣先註冊 Grab / Line Pay", checked: false },
+                { id: 4, text: "準備換匯現金 (台幣 / 美金皆可)", checked: false },
+                { id: 5, text: "提早準備個人藥品 (過敏、止瀉藥等)", checked: false },
+                { id: 6, text: "泰國網卡 / 漫遊", checked: false },
+                { id: 7, text: "泳衣 (華欣飯店泳池)", checked: false },
+                { id: 8, text: "防曬乳 / 墨鏡 / 帽子", checked: false },
+            ]);
+
+            const toggleCheck = (id) => {
+                setChecklist(checklist.map(item => 
+                    item.id === id ? { ...item, checked: !item.checked } : item
+                ));
+            };
+
+            const infoCards = [
+                {
+                    title: "天氣 Weather",
+                    icon: <Thermometer className="text-[#FF9F68]" />,
+                    content: "2月-3月是泰國乾季偏熱，平均氣溫 25-34°C。建議穿著透氣衣物。",
+                    bgColor: "bg-[#0F1C20]",
+                    textColor: "text-white"
+                },
+                {
+                    title: "電壓 Voltage",
+                    icon: <Zap className="text-[#FF9F68]" />,
+                    content: "220V，插座通常通用台灣雙扁插頭 (Type A/C)，不需轉接頭，但需注意電壓。",
+                    bgColor: "bg-white",
+                    textColor: "text-[#0F1C20]"
+                },
+                {
+                    title: "換匯策略 Currency",
+                    icon: <Banknote className="text-[#FF9F68]" />,
+                    content: "出發去華欣前，會派小分隊去換匯(供華欣使用)。建議帶台幣或美金(匯率較佳)。回曼谷不夠可再換。",
+                    bgColor: "bg-white",
+                    textColor: "text-[#0F1C20]"
+                },
+                {
+                    title: "緊急聯絡 Emergency",
+                    icon: <Phone className="text-[#FF9F68]" />,
+                    content: "觀光警察: 1155\n救護車: 1669\n台灣駐泰辦事處: +66-81-666-4006",
+                    bgColor: "bg-[#FF9F68]",
+                    textColor: "text-[#0F1C20]"
+                }
+            ];
+
+            return (
+                <div className="animate-fade-in px-6 pb-24 pt-24">
+                    {/* TDAC Alert Button */}
+                    <a 
+                        href="https://tdac.immigration.go.th/arrival-card/#/home" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="block bg-blue-600 rounded-[24px] p-5 mb-8 shadow-lg transform transition-transform hover:scale-[1.02] active:scale-95 relative overflow-hidden group"
+                    >
+                        {/* Decorative background elements */}
+                        <div className="absolute -right-4 -top-4 w-20 h-20 bg-blue-400 rounded-full opacity-20 blur-xl"></div>
+                        <div className="absolute -left-4 -bottom-4 w-16 h-16 bg-white rounded-full opacity-10 blur-lg"></div>
+
+                        <div className="relative z-10">
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center gap-2 text-white">
+                                    <FileText size={24} className="animate-pulse"/>
+                                    <h3 className="text-xl font-bold">泰國數位入境卡 (TDAC)</h3>
+                                </div>
+                                <ExternalLink size={18} className="text-blue-200" />
+                            </div>
+                            
+                            <p className="text-blue-50 text-sm mb-3 leading-relaxed font-normal">
+                                請點此填寫。出發前 72 小時內開放。
+                            </p>
+                            
+                            <div className="bg-blue-800/30 rounded-xl p-3 border border-blue-400/30 flex gap-3 items-start">
+                                <AlertCircle size={16} className="text-blue-200 shrink-0 mt-0.5" />
+                                <p className="text-xs text-blue-100 font-normal">
+                                    最晚需於登機前完成，避免到機場因未填寫而耽誤行程。
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <h2 className="text-3xl font-bold text-[#0F1C20] mb-6">旅行須知</h2>
+
+                    {/* Info Grid */}
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                        {infoCards.map((card, idx) => (
+                            <div key={idx} className={`${card.bgColor} rounded-[24px] p-5 shadow-sm flex flex-col justify-between min-h-[160px]`}>
+                                <div className="flex justify-between items-start">
+                                    <div className={`p-2 rounded-full ${card.bgColor === 'bg-white' ? 'bg-gray-100' : 'bg-white/10'}`}>
+                                        {card.icon}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 className={`font-bold text-sm mb-1 ${card.textColor}`}>{card.title}</h4>
+                                    <p className={`text-xs opacity-80 whitespace-pre-line ${card.textColor} font-normal`}>{card.content}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Checklist Section */}
+                    <div className="bg-white rounded-[30px] p-6 shadow-sm">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="bg-[#C4E0E0] p-2 rounded-full text-[#0F1C20]">
+                                <CheckSquare size={20} />
+                            </div>
+                            <h3 className="text-xl font-bold text-[#0F1C20]">To-Do List</h3>
+                        </div>
+                        
+                        <div className="space-y-3">
+                            {checklist.map((item) => (
+                                <div 
+                                    key={item.id} 
+                                    onClick={() => toggleCheck(item.id)}
+                                    className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition"
+                                >
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${item.checked ? 'bg-[#FF9F68] border-[#FF9F68]' : 'border-gray-300'}`}>
+                                        {item.checked && <CheckSquare size={14} className="text-white" />}
+                                    </div>
+                                    <span className={`flex-1 font-normal ${item.checked ? 'text-gray-400 line-through' : 'text-[#0F1C20]'}`}>
+                                        {item.text}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             );
         };
