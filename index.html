@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Thai Trip 2026 - Hua Hin & Bangkok</title>
+    <title>泰辛束了</title>
     
     <!-- Adobe Fonts (Typekit) -->
     <script>
@@ -102,7 +102,7 @@
             Info, CheckSquare, Thermometer, Zap, Banknote, Phone, Utensils, 
             Coffee, ShoppingBag, Camera, BedDouble, RefreshCcw, Wifi, 
             AlertCircle, Key, Cloud, CloudRain, Wind, ExternalLink, Map as MapIcon, FileText, Luggage, Replace,
-            MessageSquare, Send, Bot, X
+            MessageSquare, Send, Bot, X, Sparkles
         } from 'lucide-react';
 
         // --- Global Model Configuration ---
@@ -559,13 +559,9 @@
 
             const activeWeather = isHuaHin ? (weatherHH || FALLBACK_WEATHER) : (weatherBKK || FALLBACK_WEATHER);
             const locationName = isHuaHin ? "Hua Hin, Thailand" : "Bangkok, Thailand";
-            
-            // Background color logic for smooth transition
-            const bkkBg = "bg-gradient-to-br from-[#0F1C20]/90 via-[#1a2e33]/85 to-[#2E5C55]/80";
-            const hhBg = "bg-gradient-to-br from-[#c2410c] to-[#ea580c]";
-            const currentBg = isHuaHin ? hhBg : bkkBg;
-
-            // Content key for re-triggering fade-in
+            const bgColor = isHuaHin 
+                ? "bg-gradient-to-br from-[#c2410c] to-[#ea580c]" 
+                : "bg-gradient-to-br from-[#0F1C20]/90 via-[#1a2e33]/85 to-[#2E5C55]/80";
             const contentKey = isHuaHin ? 'hh' : 'bkk';
 
             const current = activeWeather.current;
@@ -685,7 +681,7 @@
                         <div className="relative z-10 px-6 pb-8">
                             <div className="mb-6">
                                 <h2 className="text-4xl font-bold text-[#0F1C20] leading-tight mb-2 drop-shadow-sm">
-                                    泰泰泰泰辣辣🥵
+                                    泰泰泰辣了🥵
                                 </h2>
                                 <div className="flex items-center gap-2 text-[#0F1C20] mt-2 font-bold bg-white/30 w-fit px-3 py-1 rounded-full backdrop-blur-md">
                                     <Users size={18} />
@@ -936,7 +932,7 @@
                                     <div className="flex justify-between items-center mb-1">
                                         <h4 className="font-bold text-[#0F1C20]">Room {room.id}</h4>
                                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${room.id === 1 && hotel !== 'asai' ? 'bg-[#0F1C20] text-white' : 'bg-[#FF9F68]/20 text-[#FF9F68]'}`}>
-                                            {room.type}
+                                            {room.type.includes('King') || room.type.includes('Triple') ? (room.type.includes('Triple') ? 'Triple' : 'King') : 'Twin'}
                                         </span>
                                     </div>
                                     <p className="text-sm text-gray-600 font-bold">{room.name}</p>
@@ -1449,7 +1445,7 @@
                     textColor: "text-[#0F1C20]"
                 },
                 {
-                    title: "換匯策略 Currency",
+                    title: "匯率 Currency",
                     icon: <Banknote className="text-[#FF9F68]" />,
                     content: "出發去華欣前，會派小分隊去換匯(供華欣使用)。建議帶台幣或美金(匯率較佳)。回曼谷不夠可再換。",
                     bgColor: "bg-white",
@@ -1473,7 +1469,6 @@
                         rel="noopener noreferrer"
                         className="block bg-blue-600 rounded-[24px] p-5 mb-8 shadow-lg transform transition-transform hover:scale-[1.02] active:scale-95 relative overflow-hidden group"
                     >
-                        {/* Decorative background elements */}
                         <div className="absolute -right-4 -top-4 w-20 h-20 bg-blue-400 rounded-full opacity-20 blur-xl"></div>
                         <div className="absolute -left-4 -bottom-4 w-16 h-16 bg-white rounded-full opacity-10 blur-lg"></div>
 
@@ -1499,7 +1494,7 @@
                         </div>
                     </a>
 
-                    <h2 className="text-3xl font-bold text-[#0F1C20] mb-6">旅行須知</h2>
+                    <h2 className="text-3xl font-bold text-[#0F1C20] mb-6">Important Info</h2>
 
                     {/* Info Grid */}
                     <div className="grid grid-cols-2 gap-4 mb-8">
@@ -1555,6 +1550,13 @@
             const [input, setInput] = useState('');
             const [loading, setLoading] = useState(false);
             const messagesEndRef = useRef(null);
+            
+            // 預設問題列表
+            const PRESET_QUESTIONS = [
+                "明天幾點集合？",
+                "我會和誰分到一間房？", 
+                "到泰國之前要注意什麼？"
+            ];
 
             const scrollToBottom = () => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1562,9 +1564,9 @@
 
             useEffect(scrollToBottom, [messages, isOpen]);
 
-            const handleSend = async () => {
-                if (!input.trim() || loading) return;
-                const userMessage = { role: 'user', text: input.trim() };
+            const handleSend = async (textToSend = input) => {
+                if (!textToSend.trim() || loading) return;
+                const userMessage = { role: 'user', text: textToSend.trim() };
                 setMessages(prev => [...prev, userMessage]);
                 setInput('');
                 setLoading(true);
@@ -1588,11 +1590,16 @@
                 2. 回答要簡潔、友善。
                 3. 如果問題與行程有關，請優先參考上述資料。例如被問「明天住哪裡」，請根據目前日期回答對應飯店。
                 4. 今天的日期假設為旅行出發前或旅途中（你可以根據使用者提問的語境判斷）。
+                5. 若使用者詢問行程以外的資訊（例如：推薦餐廳、天氣預報、當地習俗、伴手禮建議），請務必使用 Google 搜尋功能來提供最新、最準確的建議，不要只侷限於上述資料。
                 `;
                 
                 const { text } = await callGeminiAPI(userMessage.text, systemPrompt, currentModel, true);
                 setMessages(prev => [...prev, { role: 'assistant', text }]);
                 setLoading(false);
+            };
+            
+            const handlePresetClick = (question) => {
+                handleSend(question);
             };
 
             const handleUpgrade = () => {
@@ -1632,19 +1639,30 @@
                         )}
                         <div ref={messagesEndRef} />
                     </div>
-                    <div className="p-4 bg-white border-t border-gray-100 pb-8">
+                    
+                    <div className="px-4 bg-white border-t border-gray-100 pt-3 pb-8">
+                        {/* Preset Questions Chips */}
+                        <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar mb-1">
+                            {PRESET_QUESTIONS.map((q, i) => (
+                                <button 
+                                    key={i}
+                                    onClick={() => handlePresetClick(q)}
+                                    disabled={loading}
+                                    className="whitespace-nowrap px-3 py-1.5 bg-gray-100 rounded-full text-xs font-bold text-[#0F1C20] hover:bg-[#FF9F68] hover:text-white transition-colors disabled:opacity-50"
+                                >
+                                    {q}
+                                </button>
+                            ))}
+                        </div>
                         
                         {currentModel === LITE_API && (
-                            <div className="mb-3 text-center">
+                            <div className="mb-3 text-center flex items-center justify-center gap-2">
                                 <button 
                                     onClick={handleUpgrade}
-                                    className="bg-blue-600 text-white font-bold text-xs px-3 py-1 rounded-full hover:bg-blue-700 transition-colors shadow-md"
+                                    className="bg-blue-600 text-white font-bold text-[10px] px-3 py-1 rounded-full hover:bg-blue-700 transition-colors shadow-md flex items-center gap-1"
                                 >
-                                    升級至 Flash 模型 ✨
+                                    <Sparkles size={10} /> 升級至 Flash 模型
                                 </button>
-                                <p className="text-[10px] text-gray-500 mt-1">
-                                    （如果對 Lite 模型的回覆不滿意，可升級以獲得更佳的推理能力）
-                                </p>
                             </div>
                         )}
 
@@ -1659,7 +1677,7 @@
                                 disabled={loading} 
                                 autoFocus 
                             />
-                            <button onClick={handleSend} disabled={!input.trim() || loading} className={`p-2 rounded-full ${!input.trim() || loading ? 'text-gray-400' : 'bg-[#0F1C20] text-[#FF9F68]'}`}><Send size={18} /></button>
+                            <button onClick={() => handleSend()} disabled={!input.trim() || loading} className={`p-2 rounded-full ${!input.trim() || loading ? 'text-gray-400' : 'bg-[#0F1C20] text-[#FF9F68]'}`}><Send size={18} /></button>
                          </div>
 
                          <div className="text-right mt-1.5">
