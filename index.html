@@ -17,16 +17,14 @@
       })(document);
     </script>
 
-    <!-- Tailwind CSS with Custom Config -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        // 將 monotalic 設為首選，Inter 為後備
                         sans: ['monotalic', 'Inter', 'sans-serif'],
-                        // 如果有襯線體需求，也可以設定
                         serif: ['Playfair Display', 'serif'],
                     },
                 },
@@ -35,14 +33,12 @@
     </script>
     
     <!-- Google Fonts (Backup) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
 
-    <!-- Babel for JSX transformation -->
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Import Map for React & Icons -->
+    <!-- Import Map -->
     <script type="importmap">
     {
         "imports": {
@@ -55,8 +51,12 @@
 
     <style>
         /* 強制全站字體設定 */
+        :root {
+            --font-main: 'monotalic', 'Inter', sans-serif;
+        }
+
         body, button, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6 {
-            font-family: 'monotalic', 'Inter', sans-serif !important;
+            font-family: var(--font-main) !important;
             font-style: normal;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -65,21 +65,10 @@
         body {
             background-color: #C4E0E0;
             -webkit-tap-highlight-color: transparent;
-            overflow: hidden; /* Prevent body scroll, handle in app */
+            overflow: hidden;
         }
         
-        /* 保留原本的特殊字體 class 若有需要 */
-        .font-serif {
-            font-family: 'Playfair Display', serif !important;
-        }
-
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        /* Animation */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -88,19 +77,8 @@
             animation: fadeIn 0.4s ease-out forwards;
         }
         
-        /* 3D Flip Classes */
-        .perspective-1000 {
-            perspective: 1000px;
-        }
-        .transform-style-3d {
-            transform-style: preserve-3d;
-        }
-        .backface-hidden {
-            backface-visibility: hidden;
-        }
-        .rotate-y-180 {
-            transform: rotateY(180deg);
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
@@ -371,7 +349,8 @@
         // --- Views ---
 
         const WeatherCard = () => {
-            const [isFlipped, setIsFlipped] = useState(false);
+            // 預設為曼谷 (isHuaHin = false)
+            const [isHuaHin, setIsHuaHin] = useState(false);
             const [weatherBKK, setWeatherBKK] = useState(null);
             const [weatherHH, setWeatherHH] = useState(null);
             const [loading, setLoading] = useState(true);
@@ -416,24 +395,38 @@
                 );
             }
 
-            const renderWeatherFace = (weather, locationName, bgColor) => {
-                if (!weather) return null;
-                const current = weather.current;
-                const daily = weather.daily;
-                const today = new Date();
-                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                const formattedDate = `${monthNames[today.getMonth()]} ${today.getFullYear()}`;
-                const sunrise = daily.sunrise[0].split('T')[1];
-                const sunset = daily.sunset[0].split('T')[1];
+            const activeWeather = isHuaHin ? weatherHH : weatherBKK;
+            const locationName = isHuaHin ? "Hua Hin, Thailand" : "Bangkok, Thailand";
+            
+            // 使用 key 來觸發內容重繪動畫
+            const contentKey = isHuaHin ? 'hh' : 'bkk';
 
-                return (
-                    <div className={`absolute inset-0 rounded-[35px] p-6 text-white overflow-hidden backface-hidden ${bgColor} flex flex-col justify-between`}>
-                         {/* Background Gradient & Blur (Glassmorphism) */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#0F1C20]/90 via-[#1a2e33]/85 to-[#2E5C55]/80 backdrop-blur-xl z-0"></div>
+            if (!activeWeather) return null;
+
+            const current = activeWeather.current;
+            const daily = activeWeather.daily;
+            const today = new Date();
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const formattedDate = `${monthNames[today.getMonth()]} ${today.getFullYear()}`;
+            const sunrise = daily.sunrise[0].split('T')[1];
+            const sunset = daily.sunset[0].split('T')[1];
+
+            return (
+                <div className="mx-6 mb-6 cursor-pointer group" onClick={() => setIsHuaHin(!isHuaHin)}>
+                    <div className={`relative rounded-[35px] p-6 text-white overflow-hidden shadow-xl flex flex-col justify-between h-[320px]`}>
+                        
+                        {/* 雙層背景 Cross-fade */}
+                        {/* Bangkok Background (Always render, controls base) */}
+                        <div className={`absolute inset-0 bg-gradient-to-br from-[#0F1C20]/90 via-[#1a2e33]/85 to-[#2E5C55]/80 z-0 transition-opacity duration-500 ${isHuaHin ? 'opacity-0' : 'opacity-100'}`}></div>
+                        
+                        {/* Hua Hin Background (Overlay, fades in/out) */}
+                        <div className={`absolute inset-0 bg-gradient-to-br from-[#c2410c] to-[#ea580c] z-0 transition-opacity duration-500 ${isHuaHin ? 'opacity-100' : 'opacity-0'}`}></div>
+
                         {/* Decorative Glow */}
-                        <div className="absolute top-[-50%] left-[-20%] w-[200px] h-[200px] bg-[#FF9F68] opacity-20 blur-[80px] rounded-full pointer-events-none"></div>
+                        <div className="absolute top-[-50%] left-[-20%] w-[200px] h-[200px] bg-white opacity-10 blur-[80px] rounded-full pointer-events-none z-0"></div>
 
-                         <div className="relative z-10 flex flex-col h-full justify-between">
+                        {/* Content Container with Fade In Animation on Key Change */}
+                        <div key={contentKey} className="relative z-10 flex flex-col h-full justify-between animate-fade-in">
                             {/* Top Section */}
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-4">
@@ -452,7 +445,7 @@
                             {/* Middle Pills Section */}
                             <div className="space-y-2">
                                 {/* Sun Times Pill */}
-                                <div className="bg-[#0F1C20]/40 rounded-2xl px-4 py-2 flex justify-between items-center text-xs border border-white/5 shadow-inner">
+                                <div className="bg-black/20 rounded-2xl px-4 py-2 flex justify-between items-center text-xs border border-white/5 shadow-inner">
                                     <div className="flex items-center gap-2 text-white/90">
                                         <Sun size={14} className="text-[#FF9F68]" /> 
                                         <span>{sunrise}</span>
@@ -466,7 +459,7 @@
                                     </div>
                                 </div>
                                  {/* Humidity Pill */}
-                                <div className="bg-[#0F1C20]/40 rounded-2xl px-4 py-2 flex items-center justify-between text-xs border border-white/5 shadow-inner">
+                                <div className="bg-black/20 rounded-2xl px-4 py-2 flex items-center justify-between text-xs border border-white/5 shadow-inner">
                                     <div className="flex items-center gap-2">
                                         <CloudRain size={14} className="text-blue-300" />
                                         <span className="font-bold">Humidity</span>
@@ -499,30 +492,11 @@
                             </div>
                         </div>
                     </div>
-                );
-            };
-
-            return (
-                <div className="mx-6 mb-6">
-                    <div 
-                        className="relative h-[320px] w-full perspective-1000 cursor-pointer group"
-                        onClick={() => setIsFlipped(!isFlipped)}
-                    >
-                        <div className={`relative w-full h-full transition-all duration-700 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-                            {/* Front - Bangkok */}
-                            <div className="absolute w-full h-full backface-hidden">
-                                {renderWeatherFace(weatherBKK, "Bangkok, Thailand", "")}
-                            </div>
-                            
-                            {/* Back - Hua Hin */}
-                            <div className="absolute w-full h-full backface-hidden rotate-y-180">
-                                {renderWeatherFace(weatherHH, "Hua Hin, Thailand", "")}
-                            </div>
-                        </div>
-                    </div>
                     <div className="text-center mt-3 flex items-center justify-center gap-2 opacity-60 animate-pulse">
                         <Replace size={12} className="text-[#0F1C20]" />
-                        <p className="text-xs text-[#0F1C20] font-bold tracking-wide">👆 點擊卡片切換 曼谷 / 華欣 天氣</p>
+                        <p className="text-xs text-[#0F1C20] font-bold tracking-wide">
+                            {isHuaHin ? "目前顯示：華欣 (點擊切換回曼谷)" : "目前顯示：曼谷 (點擊切換至華欣)"}
+                        </p>
                     </div>
                 </div>
             );
@@ -644,6 +618,8 @@
 
         const ScheduleView = () => {
             const [selectedDay, setSelectedDay] = useState('2/25');
+            const [touchStart, setTouchStart] = useState(0);
+            const [touchEnd, setTouchEnd] = useState(0);
 
             const days = [
                 { date: '2/25', day: 'Wed', active: selectedDay === '2/25' },
@@ -654,12 +630,44 @@
                 { date: '3/2', day: 'Mon', active: selectedDay === '3/2' },
             ];
 
+            const handleTouchStart = (e) => {
+                setTouchStart(e.targetTouches[0].clientX);
+                setTouchEnd(0);
+            };
+
+            const handleTouchMove = (e) => {
+                setTouchEnd(e.targetTouches[0].clientX);
+            };
+
+            const handleTouchEnd = () => {
+                if (touchEnd === 0) return;
+                const distance = touchStart - touchEnd;
+                const swipeThreshold = 50; // Minimum distance for a swipe
+
+                if (Math.abs(distance) < swipeThreshold) return;
+
+                const isLeftSwipe = distance > 0;
+                const currentIndex = days.findIndex(d => d.date === selectedDay);
+                let newIndex = currentIndex;
+
+                if (isLeftSwipe && currentIndex < days.length - 1) {
+                    newIndex = currentIndex + 1; // Swipe left (next day)
+                } else if (!isLeftSwipe && currentIndex > 0) {
+                    newIndex = currentIndex - 1; // Swipe right (previous day)
+                }
+
+                if (newIndex !== currentIndex) {
+                    setSelectedDay(days[newIndex].date);
+                }
+            };
+            
             const currentData = TRIP_DATA[selectedDay] || { title: "Coming Soon", desc: "Details to be added", icon: <Clock size={20}/>, events: [] };
 
             return (
                 <div className="animate-fade-in px-6 pb-24 pt-24">
                     <h2 className="text-3xl font-bold text-[#0F1C20] mb-6">行程</h2>
                     
+                    {/* Day Selection Pills */}
                     <div className="flex gap-3 overflow-x-auto pb-6 no-scrollbar">
                         {days.map((item, idx) => (
                             <div 
@@ -673,8 +681,17 @@
                         ))}
                     </div>
 
-                    <div className="space-y-4">
-                        <div className="bg-[#FF9F68] rounded-[30px] p-6 text-[#0F1C20] relative overflow-hidden min-h-[400px]">
+                    {/* Timeline Card - Swipe Area */}
+                    <div 
+                        className="space-y-4"
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                    >
+                        <div 
+                            key={selectedDay} // Key change triggers content animation
+                            className="bg-[#FF9F68] rounded-[30px] p-6 text-[#0F1C20] relative overflow-hidden min-h-[400px] animate-fade-in"
+                        >
                             <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-xl"></div>
                             
                             <div className="flex justify-between items-start mb-8 relative z-10">
@@ -795,7 +812,7 @@
                 <div className="animate-fade-in px-6 pb-24 pt-24">
                     <div className="flex justify-between items-end mb-6">
                         <h2 className="text-3xl font-bold text-[#0F1C20] leading-none">
-                            Your <br/> Hotels <span className="italic font-serif font-light"></span>
+                            Your <br/> Hotels
                         </h2>
                         <div className="p-3 border border-gray-300 rounded-full">
                             <MapPin size={20} className="text-[#0F1C20]"/>
