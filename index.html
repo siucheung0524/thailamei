@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>泰辛束了</title>
@@ -410,7 +414,8 @@
         };
 
         // --- GEMINI API CALLER (Client-Side Proxy to Serverless Function) ---
-        const callGeminiAPI = async (userQuery, systemPrompt, modelName, useSearch = true) => {
+        // 🚨 IMPORTANT CHANGE: Now accepts the full 'messages' array for history
+        const callGeminiAPI = async (messages, systemPrompt, modelName, useSearch = true) => {
             try {
                 // Set up timeout promise
                 const timeoutDuration = 30000; // 30 seconds
@@ -421,7 +426,8 @@
                 const fetchPromise = fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userQuery, systemPrompt, modelName, useSearch })
+                    // Send the full message history to the Vercel API Route
+                    body: JSON.stringify({ messages, systemPrompt, modelName, useSearch })
                 });
 
                 const response = await Promise.race([fetchPromise, timeoutPromise]);
@@ -737,7 +743,7 @@
                         <div className="relative z-10 px-6 pb-8">
                             <div className="mb-6">
                                 <h2 className="text-4xl font-bold text-[#0F1C20] leading-tight mb-2 drop-shadow-sm">
-                                    泰泰泰辛束了🥵
+                                    泰辛束了🥵
                                 </h2>
                                 <div className="flex items-center gap-2 text-[#0F1C20] mt-2 font-bold bg-white/30 w-fit px-3 py-1 rounded-full backdrop-blur-md">
                                     <Users size={18} />
@@ -1448,14 +1454,10 @@
                                 className={`block ${map.color} rounded-[30px] p-6 shadow-lg transform transition-transform hover:scale-[1.02] relative overflow-hidden group min-h-[160px] flex flex-col justify-between`}
                             >
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full translate-x-10 -translate-y-10 blur-2xl"></div>
-                                
                                 <div className="flex justify-between items-start relative z-10">
-                                    <div className={`p-3 rounded-full bg-white/20 ${map.textColor} backdrop-blur-sm`}>
-                                        {map.icon}
-                                    </div>
+                                    <div className={`p-3 rounded-full bg-white/20 ${map.textColor} backdrop-blur-sm`}>{map.icon}</div>
                                     <ExternalLink size={20} className={`${map.textColor} opacity-60`} />
                                 </div>
-                                
                                 <div className="mt-4 relative z-10">
                                     <h3 className={`text-2xl font-bold ${map.textColor} mb-1`}>{map.title}</h3>
                                     <p className={`text-sm opacity-80 ${map.textColor} font-normal`}>{map.desc}</p>
@@ -1600,6 +1602,7 @@
         };
 
         const ChatOverlay = ({ isOpen, onClose, currentModel, setCurrentModel }) => {
+            // 狀態儲存完整的對話歷史
             const [messages, setMessages] = useState([
                 { role: 'assistant', text: `您好！我是您的泰國旅遊助理 ✨，目前使用的是 ${getModelDisplayName(currentModel)} 模型。請問有什麼關於華欣或曼谷的問題嗎？` }
             ]);
@@ -1620,14 +1623,18 @@
 
             useEffect(scrollToBottom, [messages, isOpen]);
 
+            // 處理發送訊息 (現在會傳遞完整的 messages 歷史)
             const handleSend = async (textToSend = input) => {
                 if (!textToSend.trim() || loading) return;
+                
                 const userMessage = { role: 'user', text: textToSend.trim() };
-                setMessages(prev => [...prev, userMessage]);
+                const updatedMessages = [...messages, userMessage]; // 包含新訊息的完整歷史
+                
+                setMessages(updatedMessages); // 更新畫面顯示
                 setInput('');
                 setLoading(true);
                 
-                // Construct Context-Aware Prompt
+                // Construct Context-Aware Prompt (隨 request 傳送給後端)
                 const systemPrompt = `
                 你是一個專屬的旅遊助理，服務這趟 13 人的 "Thai Trip 2026" 泰國之旅。
                 以下是這次旅程的詳細資料，請根據這些資訊回答使用者的問題：
@@ -1649,7 +1656,9 @@
                 5. 若使用者詢問行程以外的資訊（例如：推薦餐廳、天氣預報、當地習俗、伴手禮建議），請務必使用 Google 搜尋功能來提供最新、最準確的建議，不要只侷限於上述資料。
                 `;
                 
-                const { text } = await callGeminiAPI(userMessage.text, systemPrompt, currentModel, true);
+                // 🚨 將完整的 updatedMessages 傳給 API CALLER
+                const { text } = await callGeminiAPI(updatedMessages, systemPrompt, currentModel, true);
+
                 setMessages(prev => [...prev, { role: 'assistant', text }]);
                 setLoading(false);
             };
