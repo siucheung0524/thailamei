@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>泰辛束了</title>
@@ -89,6 +85,15 @@
         .animate-slide-up {
             animation: slideUp 0.3s ease-out forwards;
         }
+
+        @keyframes pulse-once {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pulse-once {
+            animation: pulse-once 0.5s ease-in-out;
+        }
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -106,7 +111,7 @@
             Info, CheckSquare, Thermometer, Zap, Banknote, Phone, Utensils, 
             Coffee, ShoppingBag, Camera, BedDouble, RefreshCcw, Wifi, 
             AlertCircle, Key, Cloud, CloudRain, Wind, ExternalLink, Map as MapIcon, FileText, Luggage, Replace,
-            MessageSquare, Send, Bot, X, Sparkles
+            MessageSquare, Send, Bot, X, Sparkles, Settings
         } from 'lucide-react';
 
         // --- Global Model Configuration ---
@@ -118,7 +123,7 @@
             return 'Gemini 2.5 Flash Lite';
         };
 
-        // --- Global Data Sources ---
+        // --- Global Data Sources (Static for now, updated by user) ---
         const TRIP_DATA = {
             '2/25': {
                 title: "Departure Night",
@@ -384,50 +389,34 @@
             return timeLeft;
         };
 
-        // --- GEMINI API CALLER ---
+        // --- GEMINI API CALLER (Client-Side Proxy to Serverless Function) ---
+        // This function calls the Vercel API route instead of calling Google directly
         const callGeminiAPI = async (userQuery, systemPrompt, modelName, useSearch = true) => {
-            const apiKey = "AIzaSyDCBEhOGfDaUMbnIVMyllMolf47PFej4RE"; 
-            // Use modelName in the URL
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-            
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                tools: useSearch ? [{ "google_search": {} }] : undefined,
-            };
+            try {
+                // Point to the local API route. In Vercel, this maps to api/chat.js
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // apiKey is no longer sent from frontend, Vercel backend handles it
+                    body: JSON.stringify({ userQuery, systemPrompt, modelName, useSearch })
+                });
 
-            const maxRetries = 3;
-            let delay = 1000;
-
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 429 && i < maxRetries - 1) { 
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                            delay *= 2;
-                            continue;
-                        }
-                        throw new Error(`API call failed with status: ${response.status}`);
+                if (!response.ok) {
+                    // Fallback for preview environment where /api/chat doesn't exist
+                    if (response.status === 404) {
+                        return { text: "⚠️ 預覽模式無法使用 AI 功能。\n\n請將此專案部署至 Vercel，並在 Vercel 後台設定 GEMINI_API_KEY 環境變數，即可正常使用 AI 助理。", result: null };
                     }
-
-                    const result = await response.json();
-                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "抱歉，AI 暫時無法提供答案。";
-                    return { text, result };
-
-                } catch (error) {
-                    console.error("Gemini API error:", error);
-                    if (i === maxRetries - 1) {
-                         return { text: "無法連接 AI 服務。請檢查網路或稍後再試。", result: null };
-                    }
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2;
+                    throw new Error(`API request failed: ${response.status}`);
                 }
+
+                const result = await response.json();
+                // Extract text from Gemini response structure
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "抱歉，AI 暫時無法提供答案。";
+                return { text, result };
+
+            } catch (error) {
+                console.error("Gemini API Proxy error:", error);
+                return { text: "連線發生錯誤，請稍後再試。", result: null };
             }
         };
 
@@ -563,9 +552,6 @@
 
             const activeWeather = isHuaHin ? (weatherHH || FALLBACK_WEATHER) : (weatherBKK || FALLBACK_WEATHER);
             const locationName = isHuaHin ? "Hua Hin, Thailand" : "Bangkok, Thailand";
-            const bgColor = isHuaHin 
-                ? "bg-gradient-to-br from-[#c2410c] to-[#ea580c]" 
-                : "bg-gradient-to-br from-[#0F1C20]/90 via-[#1a2e33]/85 to-[#2E5C55]/80";
             const contentKey = isHuaHin ? 'hh' : 'bkk';
 
             const current = activeWeather.current;
@@ -685,7 +671,7 @@
                         <div className="relative z-10 px-6 pb-8">
                             <div className="mb-6">
                                 <h2 className="text-4xl font-bold text-[#0F1C20] leading-tight mb-2 drop-shadow-sm">
-                                    泰泰泰辣了🥵
+                                    泰泰泰辣了🥵�
                                 </h2>
                                 <div className="flex items-center gap-2 text-[#0F1C20] mt-2 font-bold bg-white/30 w-fit px-3 py-1 rounded-full backdrop-blur-md">
                                     <Users size={18} />
@@ -729,7 +715,7 @@
 
                     <div className="mb-4 px-6">
                         <div className="flex justify-between items-end mb-4">
-                            <h3 className="text-xl font-bold text-[#0F1C20]">行程預覽 (Up Next)</h3>
+                            <h3 className="text-xl font-bold text-[#0F1C20]">Up Next</h3>
                             <span 
                                 onClick={() => setActiveTab('schedule')} 
                                 className="text-sm text-[#FF9F68] font-bold cursor-pointer flex items-center gap-1"
@@ -936,7 +922,7 @@
                                     <div className="flex justify-between items-center mb-1">
                                         <h4 className="font-bold text-[#0F1C20]">Room {room.id}</h4>
                                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${room.id === 1 && hotel !== 'asai' ? 'bg-[#0F1C20] text-white' : 'bg-[#FF9F68]/20 text-[#FF9F68]'}`}>
-                                            {room.type.includes('King') || room.type.includes('Triple') ? (room.type.includes('Triple') ? 'Triple' : 'King') : 'Twin'}
+                                            {room.type}
                                         </span>
                                     </div>
                                     <p className="text-sm text-gray-600 font-bold">{room.name}</p>
@@ -1319,7 +1305,7 @@
                                 <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                                     {flightStatus.error ? <Wifi size={16} className="text-red-500" /> : <AlertCircle size={16} />}
                                 </div>
-                                <div className="text-xs text-gray-600">
+                                <div className="text-xs text-gray-600 font-normal">
                                     <span className="font-bold text-[#0F1C20] block mb-0.5">Note</span>
                                     {flight.note}
                                 </div>
@@ -1577,7 +1563,7 @@
                 
                 // Construct Context-Aware Prompt
                 const systemPrompt = `
-                你是一個專屬的旅遊助理，服務這趟 13 人的 "泰辛束了" 泰國之旅。
+                你是一個專屬的旅遊助理，服務這趟 13 人的 "Thai Trip 2026" 泰國之旅。
                 以下是這次旅程的詳細資料，請根據這些資訊回答使用者的問題：
 
                 【行程安排 (Itinerary)】
@@ -1597,7 +1583,7 @@
                 5. 若使用者詢問行程以外的資訊（例如：推薦餐廳、天氣預報、當地習俗、伴手禮建議），請務必使用 Google 搜尋功能來提供最新、最準確的建議，不要只侷限於上述資料。
                 `;
                 
-                const { text } = await callGeminiAPI(userMessage.text, systemPrompt, currentModel, true);
+                const { text } = await callGeminiAPI(userQuery, systemPrompt, currentModel, true);
                 setMessages(prev => [...prev, { role: 'assistant', text }]);
                 setLoading(false);
             };
@@ -1643,21 +1629,7 @@
                         )}
                         <div ref={messagesEndRef} />
                     </div>
-                    
-                    <div className="px-4 bg-white border-t border-gray-100 pt-3 pb-8">
-                        {/* Preset Questions Chips */}
-                        <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar mb-1">
-                            {PRESET_QUESTIONS.map((q, i) => (
-                                <button 
-                                    key={i}
-                                    onClick={() => handlePresetClick(q)}
-                                    disabled={loading}
-                                    className="whitespace-nowrap px-3 py-1.5 bg-gray-100 rounded-full text-xs font-bold text-[#0F1C20] hover:bg-[#FF9F68] hover:text-white transition-colors disabled:opacity-50"
-                                >
-                                    {q}
-                                </button>
-                            ))}
-                        </div>
+                    <div className="p-4 bg-white border-t border-gray-100 pb-8">
                         
                         {currentModel === LITE_API && (
                             <div className="mb-3 text-center flex items-center justify-center gap-2">
@@ -1669,6 +1641,19 @@
                                 </button>
                             </div>
                         )}
+                        
+                         <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar mb-1">
+                            {PRESET_QUESTIONS.map((q, i) => (
+                                <button 
+                                    key={i}
+                                    onClick={() => handlePresetClick(q)}
+                                    disabled={loading}
+                                    className="whitespace-nowrap px-3 py-1.5 bg-gray-100 rounded-full text-xs font-bold text-[#0F1C20] hover:bg-[#FF9F68] hover:text-white transition-colors disabled:opacity-50"
+                                >
+                                    {q}
+                                </button>
+                            ))}
+                         </div>
 
                          <div className="flex items-center gap-3 bg-gray-100 rounded-full px-4 py-2">
                             <input 
