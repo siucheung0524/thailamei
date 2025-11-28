@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-     <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>泰辛束了</title>
@@ -101,6 +97,26 @@
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* New Chat Styling for Markdown */
+        .chat-content strong {
+            font-weight: 700 !important;
+        }
+        /* Style for simple list items converted from * */
+        .chat-content p:before {
+            content: "";
+            display: inline-block;
+            width: 0;
+            height: 0;
+            margin-right: 0;
+        }
+        .chat-content ul {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+        .chat-content li {
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -396,17 +412,33 @@
         // --- GEMINI API CALLER (Client-Side Proxy to Serverless Function) ---
         const callGeminiAPI = async (userQuery, systemPrompt, modelName, useSearch = true) => {
             try {
-                const response = await fetch('/api/chat', {
+                // Set up timeout promise
+                const timeoutDuration = 30000; // 30 seconds
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error(`Timeout after ${timeoutDuration / 1000} seconds`)), timeoutDuration)
+                );
+
+                const fetchPromise = fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userQuery, systemPrompt, modelName, useSearch })
                 });
 
+                const response = await Promise.race([fetchPromise, timeoutPromise]);
+                
+                if (response instanceof Error && response.message.includes('Timeout')) {
+                     return { text: "連線逾時，伺服器未在時間內回應。請再試一次。", result: null };
+                }
+
                 if (!response.ok) {
                     if (response.status === 404) {
                         return { text: "⚠️ 預覽模式無法使用 AI 功能。\n\n請將此專案部署至 Vercel，並在 Vercel 後台設定 GEMINI_API_KEY 環境變數，即可正常使用 AI 助理。", result: null };
                     }
-                    throw new Error(`API request failed: ${response.status}`);
+                    // Attempt to read the error details from the server response
+                    const errorDetails = await response.json().catch(() => ({}));
+                    const errorMessage = errorDetails.error || `API Request Failed (Status: ${response.status})`;
+
+                    return { text: `伺服器錯誤: ${errorMessage}`, result: null };
                 }
 
                 const result = await response.json();
@@ -415,9 +447,41 @@
 
             } catch (error) {
                 console.error("Gemini API Proxy error:", error);
-                return { text: "連線發生錯誤，請稍後再試。", result: null };
+                return { text: `連線發生錯誤: ${error.message}`, result: null };
             }
         };
+        
+        // --- Markdown Formatting Helper (NEW) ---
+        const renderSimpleMarkdown = (text) => {
+            if (!text) return { __html: "" };
+            
+            // 1. Convert **bold** to <strong>bold</strong>
+            let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // 2. Simple handling for lists and newlines
+            // Replace * followed by space at start of line with list item start
+            html = html.replace(/^\s*\*\s+(.*)$/gm, '<li>$1</li>');
+            
+            // Group list items by checking if the line starts with <li>
+            if (html.includes('<li>')) {
+                // Wrap consecutive <li> items in <ul>. This is a heuristic.
+                html = html.replace(/(<li>.*?<\/li>)/g, '\n$1\n');
+                html = html.replace(/(<li>.*?<\/li>\s*)+/gs, '<ul>$&</ul>');
+            }
+            
+            // 3. Convert paragraphs (double newline) to <p> tags
+            // Replace remaining double newlines with closing/opening p tags
+            html = html.replace(/\n\s*\n/g, '</p><p>');
+            // Wrap the whole thing in <p> tags if it's not already within a list
+            if (!html.startsWith('<ul>')) {
+                html = `<p>${html}</p>`; 
+            }
+            // Remove empty <p> tags
+            html = html.replace(/<p>\s*<\/p>/g, '');
+            
+            return { __html: html };
+        };
+
 
         // --- Components ---
 
@@ -673,7 +737,7 @@
                         <div className="relative z-10 px-6 pb-8">
                             <div className="mb-6">
                                 <h2 className="text-4xl font-bold text-[#0F1C20] leading-tight mb-2 drop-shadow-sm">
-                                    泰泰泰辣了🥵
+                                    泰泰泰辛束了🥵
                                 </h2>
                                 <div className="flex items-center gap-2 text-[#0F1C20] mt-2 font-bold bg-white/30 w-fit px-3 py-1 rounded-full backdrop-blur-md">
                                     <Users size={18} />
@@ -1161,6 +1225,185 @@
             );
         };
 
+        const RoomAllocationView = ({ hotel }) => {
+            const rooms = ROOM_DATA;
+            let hotelName = "The Standard Hua Hin";
+            let hotelGuests = "Total 7 Rooms • 13 Guests";
+            let headerColor = "bg-[#FF9F68]";
+
+            if (hotel === 'asai') {
+                hotelName = "ASAI Bangkok Chinatown";
+                headerColor = "bg-[#C4E0E0]"; 
+                hotelGuests = "Total 6 Rooms • 13 Guests";
+            }
+            
+            const filteredRooms = rooms.filter(r => r.hotelKey === hotel);
+
+            return (
+                <div className="animate-fade-in px-6 pb-24 pt-24">
+                    <div className="flex justify-between items-end mb-6">
+                        <h2 className="text-3xl font-bold text-[#0F1C20] leading-none">
+                            Room <br/> Allocation List
+                        </h2>
+                        <div className="p-3 border border-gray-300 rounded-full">
+                            <Key size={20} className="text-[#0F1C20]"/>
+                        </div>
+                    </div>
+
+                    <div className={`${headerColor} rounded-2xl p-4 mb-6 shadow-sm`}>
+                        <h3 className="font-bold text-[#0F1C20] flex items-center gap-2">
+                            <Home size={18} /> {hotelName}
+                        </h3>
+                        <p className="text-[#0F1C20]/80 text-sm mt-1 font-normal">{hotelGuests}</p>
+                    </div>
+
+                    <div className="space-y-3">
+                        {filteredRooms.map((room, idx) => (
+                            <div key={idx} className="bg-white rounded-[24px] p-5 flex items-center gap-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                <div className="w-12 h-12 rounded-full bg-[#F5F7F7] flex items-center justify-center text-[#0F1C20] shrink-0">
+                                    {room.icon === 'bed_double' ? <BedDouble size={24} /> : <Users size={24} />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <h4 className="font-bold text-[#0F1C20]">Room {room.id}</h4>
+                                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${room.id === 1 && hotel !== 'asai' ? 'bg-[#0F1C20] text-white' : 'bg-[#FF9F68]/20 text-[#FF9F68]'}`}>
+                                            {room.type}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 font-bold">{room.name}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5 font-normal">{room.beds} • {room.guests}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const HotelsView = ({ onViewRooms }) => {
+            const openMap = (hotelName) => {
+                const query = encodeURIComponent(hotelName);
+                window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+            };
+
+            return (
+                <div className="animate-fade-in px-6 pb-24 pt-24">
+                    <div className="flex justify-between items-end mb-6">
+                        <h2 className="text-3xl font-bold text-[#0F1C20] leading-none">
+                            Your <br/> Hotels
+                        </h2>
+                        <div className="p-3 border border-gray-300 rounded-full">
+                            <MapPin size={20} className="text-[#0F1C20]"/>
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <div 
+                            onClick={() => openMap("SHIN Patara Living Hotel Bangkok")}
+                            className="bg-[#FF9F68] rounded-[24px] p-5 flex justify-between items-center cursor-pointer transition hover:bg-[#ff8a50] hover:shadow-md"
+                        >
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="bg-[#0F1C20] text-white text-[10px] px-2 py-0.5 rounded-full">Stop 1 • Arrival</span>
+                                </div>
+                                <h4 className="font-bold text-[#0F1C20] text-lg">SHIN Patara Living</h4>
+                                <p className="text-[#0F1C20]/70 text-sm font-normal">Feb 26 (01:15 AM check-in)</p>
+                            </div>
+                            <MapIcon size={20} className="text-[#0F1C20]" />
+                        </div>
+                    </div>
+
+                    <div 
+                        className="w-full aspect-[4/5] rounded-[40px] bg-[#0F1C20] relative mb-6 overflow-hidden group hover:shadow-xl transition-all"
+                    >
+                        <div 
+                            onClick={() => openMap("The Standard Hua Hin")}
+                            className="absolute inset-0 cursor-pointer"
+                        >
+                            <img 
+                                src="https://assets.hyatt.com/content/dam/hyatt/hyattdam/images/2025/05/16/1025/HUASH-P0016-Pool.jpg/HUASH-P0016-Pool.16x9.jpg" 
+                                alt="The Standard Hua Hin Pool" 
+                                className="w-full h-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105" 
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                        </div>
+                        
+                        <div className="absolute top-6 left-6 right-6 flex justify-between items-start z-10 pointer-events-none">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="bg-[#C4E0E0] text-[#0F1C20] text-[10px] font-bold px-2 py-0.5 rounded-full">Stop 2</span>
+                                </div>
+                                <h3 className="text-3xl font-bold text-white leading-tight drop-shadow-lg">The Standard<br/>Hua Hin</h3>
+                                <p className="text-white/90 font-medium drop-shadow-md">Feb 26 - 28</p>
+                            </div>
+                            <button className="w-12 h-12 bg-[#C4E0E0]/90 backdrop-blur rounded-full flex items-center justify-center text-[#0F1C20] shadow-lg pointer-events-auto">
+                                <MapIcon size={20} />
+                            </button>
+                        </div>
+
+                        <div className="absolute bottom-6 left-6 right-6 z-10 flex gap-2">
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation(); 
+                                    onViewRooms('huahin');
+                                }}
+                                className="flex-1 bg-white text-[#0F1C20] font-bold py-4 rounded-[20px] shadow-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Key size={18} />
+                                查看分房
+                            </button>
+                        </div>
+                    </div>
+
+                    <div 
+                        className="w-full aspect-[4/5] rounded-[40px] bg-[#0F1C20] relative mb-6 overflow-hidden group hover:shadow-xl transition-all"
+                    >
+                        <div 
+                            onClick={() => openMap("ASAI Bangkok Chinatown")}
+                            className="absolute inset-0 cursor-pointer"
+                        >
+                            <div className="w-full h-full bg-gray-800 relative">
+                                <img 
+                                    src="https://www.dusit.com/asai-bangkok-chinatown/wp-content/uploads/sites/51/cache/2025/03/ABCT-WEBSITE-2/573589606.jpg" 
+                                    onError={(e) => {e.target.src = "/api/placeholder/400/500"; e.target.style.opacity="0.5"}}
+                                    alt="ASAI Chinatown" 
+                                    className="w-full h-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105" 
+                                />
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                        </div>
+                        
+                        <div className="absolute top-6 left-6 right-6 flex justify-between items-start z-10 pointer-events-none">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="bg-[#FF9F68] text-[#0F1C20] text-[10px] font-bold px-2 py-0.5 rounded-full">Stop 3</span>
+                                </div>
+                                <h3 className="text-3xl font-bold text-white leading-tight drop-shadow-lg">ASAI<br/>Chinatown</h3>
+                                <p className="text-white/90 font-medium drop-shadow-md">Feb 28 - Mar 2</p>
+                            </div>
+                            <button className="w-12 h-12 bg-[#FF9F68]/90 backdrop-blur rounded-full flex items-center justify-center text-[#0F1C20] shadow-lg pointer-events-auto">
+                                <MapIcon size={20} />
+                            </button>
+                        </div>
+
+                        <div className="absolute bottom-6 left-6 right-6 z-10 flex gap-2">
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation(); 
+                                    onViewRooms('asai');
+                                }}
+                                className="flex-1 bg-white text-[#0F1C20] font-bold py-4 rounded-[20px] shadow-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Key size={18} />
+                                查看分房
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            );
+        };
+
         const MapView = () => {
             const maps = [
                 {
@@ -1439,7 +1682,10 @@
                             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[85%] px-4 py-3 rounded-3xl shadow-md flex items-start gap-3 ${msg.role === 'user' ? 'bg-[#FF9F68] text-[#0F1C20] rounded-br-none' : 'bg-white text-[#0F1C20] rounded-tl-none'}`}>
                                     {msg.role === 'assistant' && <div className="shrink-0 pt-1"><Bot size={16} className="text-[#FF9F68]" /></div>}
-                                    <div className="text-sm font-normal whitespace-pre-wrap">{msg.text}</div>
+                                    <div 
+                                        className="text-sm font-normal chat-content" 
+                                        dangerouslySetInnerHTML={msg.role === 'assistant' ? renderSimpleMarkdown(msg.text) : { __html: msg.text }}
+                                    />
                                 </div>
                             </div>
                         ))}
