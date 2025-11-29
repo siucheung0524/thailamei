@@ -135,7 +135,7 @@
             Info, CheckSquare, Thermometer, Zap, Banknote, Phone, Utensils, 
             Coffee, ShoppingBag, Camera, BedDouble, RefreshCcw, Wifi, 
             AlertCircle, Key, Cloud, CloudRain, Wind, ExternalLink, Map as MapIcon, FileText, Luggage, Replace,
-            MessageSquare, Send, Bot, X, Sparkles, Settings
+            MessageSquare, Send, Bot, X, Sparkles, Settings, ScanLine
         } from 'lucide-react';
 
         // --- Global Model Configuration ---
@@ -147,7 +147,8 @@
             return 'Gemini 2.5 Flash Lite';
         };
 
-        // --- Global Data Sources ---
+        // --- Global Data Sources (DEFINED FIRST TO AVOID REFERENCE ERRORS) ---
+        
         const TRIP_DATA = {
             '2/25': {
                 title: "Departure Night",
@@ -414,7 +415,7 @@
         };
 
         // --- GEMINI API CALLER (Client-Side Proxy to Serverless Function) ---
-        // 🚨 IMPORTANT CHANGE: Now accepts the full 'messages' array for history
+        // This function calls the Vercel API route instead of calling Google directly
         const callGeminiAPI = async (messages, systemPrompt, modelName, useSearch = true) => {
             try {
                 // Set up timeout promise
@@ -437,6 +438,7 @@
                 }
 
                 if (!response.ok) {
+                    // Fallback for preview environment where /api/chat doesn't exist
                     if (response.status === 404) {
                         return { text: "⚠️ 預覽模式無法使用 AI 功能。\n\n請將此專案部署至 Vercel，並在 Vercel 後台設定 GEMINI_API_KEY 環境變數，即可正常使用 AI 助理。", result: null };
                     }
@@ -448,6 +450,7 @@
                 }
 
                 const result = await response.json();
+                // Extract text from Gemini response structure
                 const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "抱歉，AI 暫時無法提供答案。";
                 return { text, result };
 
@@ -457,7 +460,7 @@
             }
         };
         
-        // --- Markdown Formatting Helper (NEW) ---
+        // --- Markdown Formatting Helper ---
         const renderSimpleMarkdown = (text) => {
             if (!text) return { __html: "" };
             
@@ -952,6 +955,185 @@
             );
         };
 
+        const RoomAllocationView = ({ hotel }) => {
+            const rooms = ROOM_DATA;
+            let hotelName = "The Standard Hua Hin";
+            let hotelGuests = "Total 7 Rooms • 13 Guests";
+            let headerColor = "bg-[#FF9F68]";
+
+            if (hotel === 'asai') {
+                hotelName = "ASAI Bangkok Chinatown";
+                headerColor = "bg-[#C4E0E0]"; 
+                hotelGuests = "Total 6 Rooms • 13 Guests";
+            }
+            
+            const filteredRooms = rooms.filter(r => r.hotelKey === hotel);
+
+            return (
+                <div className="animate-fade-in px-6 pb-24 pt-24">
+                    <div className="flex justify-between items-end mb-6">
+                        <h2 className="text-3xl font-bold text-[#0F1C20] leading-none">
+                            Room <br/> Allocation List
+                        </h2>
+                        <div className="p-3 border border-gray-300 rounded-full">
+                            <Key size={20} className="text-[#0F1C20]"/>
+                        </div>
+                    </div>
+
+                    <div className={`${headerColor} rounded-2xl p-4 mb-6 shadow-sm`}>
+                        <h3 className="font-bold text-[#0F1C20] flex items-center gap-2">
+                            <Home size={18} /> {hotelName}
+                        </h3>
+                        <p className="text-[#0F1C20]/80 text-sm mt-1 font-normal">{hotelGuests}</p>
+                    </div>
+
+                    <div className="space-y-3">
+                        {filteredRooms.map((room, idx) => (
+                            <div key={idx} className="bg-white rounded-[24px] p-5 flex items-center gap-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                <div className="w-12 h-12 rounded-full bg-[#F5F7F7] flex items-center justify-center text-[#0F1C20] shrink-0">
+                                    {room.icon === 'bed_double' ? <BedDouble size={24} /> : <Users size={24} />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <h4 className="font-bold text-[#0F1C20]">Room {room.id}</h4>
+                                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${room.id === 1 && hotel !== 'asai' ? 'bg-[#0F1C20] text-white' : 'bg-[#FF9F68]/20 text-[#FF9F68]'}`}>
+                                            {room.type}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 font-bold">{room.name}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5 font-normal">{room.beds} • {room.guests}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const HotelsView = ({ onViewRooms }) => {
+            const openMap = (hotelName) => {
+                const query = encodeURIComponent(hotelName);
+                window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+            };
+
+            return (
+                <div className="animate-fade-in px-6 pb-24 pt-24">
+                    <div className="flex justify-between items-end mb-6">
+                        <h2 className="text-3xl font-bold text-[#0F1C20] leading-none">
+                            Your <br/> Hotels
+                        </h2>
+                        <div className="p-3 border border-gray-300 rounded-full">
+                            <MapPin size={20} className="text-[#0F1C20]"/>
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <div 
+                            onClick={() => openMap("SHIN Patara Living Hotel Bangkok")}
+                            className="bg-[#FF9F68] rounded-[24px] p-5 flex justify-between items-center cursor-pointer transition hover:bg-[#ff8a50] hover:shadow-md"
+                        >
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="bg-[#0F1C20] text-white text-[10px] px-2 py-0.5 rounded-full">Stop 1 • Arrival</span>
+                                </div>
+                                <h4 className="font-bold text-[#0F1C20] text-lg">SHIN Patara Living</h4>
+                                <p className="text-[#0F1C20]/70 text-sm font-normal">Feb 26 (01:15 AM check-in)</p>
+                            </div>
+                            <MapIcon size={20} className="text-[#0F1C20]" />
+                        </div>
+                    </div>
+
+                    <div 
+                        className="w-full aspect-[4/5] rounded-[40px] bg-[#0F1C20] relative mb-6 overflow-hidden group hover:shadow-xl transition-all"
+                    >
+                        <div 
+                            onClick={() => openMap("The Standard Hua Hin")}
+                            className="absolute inset-0 cursor-pointer"
+                        >
+                            <img 
+                                src="https://assets.hyatt.com/content/dam/hyatt/hyattdam/images/2025/05/16/1025/HUASH-P0016-Pool.jpg/HUASH-P0016-Pool.16x9.jpg" 
+                                alt="The Standard Hua Hin Pool" 
+                                className="w-full h-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105" 
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                        </div>
+                        
+                        <div className="absolute top-6 left-6 right-6 flex justify-between items-start z-10 pointer-events-none">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="bg-[#C4E0E0] text-[#0F1C20] text-[10px] font-bold px-2 py-0.5 rounded-full">Stop 2</span>
+                                </div>
+                                <h3 className="text-3xl font-bold text-white leading-tight drop-shadow-lg">The Standard<br/>Hua Hin</h3>
+                                <p className="text-white/90 font-medium drop-shadow-md">Feb 26 - 28</p>
+                            </div>
+                            <button className="w-12 h-12 bg-[#C4E0E0]/90 backdrop-blur rounded-full flex items-center justify-center text-[#0F1C20] shadow-lg pointer-events-auto">
+                                <MapIcon size={20} />
+                            </button>
+                        </div>
+
+                        <div className="absolute bottom-6 left-6 right-6 z-10 flex gap-2">
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation(); 
+                                    onViewRooms('huahin');
+                                }}
+                                className="flex-1 bg-white text-[#0F1C20] font-bold py-4 rounded-[20px] shadow-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Key size={18} />
+                                查看分房
+                            </button>
+                        </div>
+                    </div>
+
+                    <div 
+                        className="w-full aspect-[4/5] rounded-[40px] bg-[#0F1C20] relative mb-6 overflow-hidden group hover:shadow-xl transition-all"
+                    >
+                        <div 
+                            onClick={() => openMap("ASAI Bangkok Chinatown")}
+                            className="absolute inset-0 cursor-pointer"
+                        >
+                            <div className="w-full h-full bg-gray-800 relative">
+                                <img 
+                                    src="https://www.dusit.com/asai-bangkok-chinatown/wp-content/uploads/sites/51/cache/2025/03/ABCT-WEBSITE-2/573589606.jpg" 
+                                    onError={(e) => {e.target.src = "/api/placeholder/400/500"; e.target.style.opacity="0.5"}}
+                                    alt="ASAI Chinatown" 
+                                    className="w-full h-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105" 
+                                />
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                        </div>
+                        
+                        <div className="absolute top-6 left-6 right-6 flex justify-between items-start z-10 pointer-events-none">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="bg-[#FF9F68] text-[#0F1C20] text-[10px] font-bold px-2 py-0.5 rounded-full">Stop 3</span>
+                                </div>
+                                <h3 className="text-3xl font-bold text-white leading-tight drop-shadow-lg">ASAI<br/>Chinatown</h3>
+                                <p className="text-white/90 font-medium drop-shadow-md">Feb 28 - Mar 2</p>
+                            </div>
+                            <button className="w-12 h-12 bg-[#FF9F68]/90 backdrop-blur rounded-full flex items-center justify-center text-[#0F1C20] shadow-lg pointer-events-auto">
+                                <MapIcon size={20} />
+                            </button>
+                        </div>
+
+                        <div className="absolute bottom-6 left-6 right-6 z-10 flex gap-2">
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation(); 
+                                    onViewRooms('asai');
+                                }}
+                                className="flex-1 bg-white text-[#0F1C20] font-bold py-4 rounded-[20px] shadow-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Key size={18} />
+                                查看分房
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            );
+        };
+
         const FlightTicket = ({ flight, defaultExpanded }) => {
             const [isExpanded, setIsExpanded] = useState(defaultExpanded);
             const [flightStatus, setFlightStatus] = useState({
@@ -1231,185 +1413,6 @@
             );
         };
 
-        const RoomAllocationView = ({ hotel }) => {
-            const rooms = ROOM_DATA;
-            let hotelName = "The Standard Hua Hin";
-            let hotelGuests = "Total 7 Rooms • 13 Guests";
-            let headerColor = "bg-[#FF9F68]";
-
-            if (hotel === 'asai') {
-                hotelName = "ASAI Bangkok Chinatown";
-                headerColor = "bg-[#C4E0E0]"; 
-                hotelGuests = "Total 6 Rooms • 13 Guests";
-            }
-            
-            const filteredRooms = rooms.filter(r => r.hotelKey === hotel);
-
-            return (
-                <div className="animate-fade-in px-6 pb-24 pt-24">
-                    <div className="flex justify-between items-end mb-6">
-                        <h2 className="text-3xl font-bold text-[#0F1C20] leading-none">
-                            Room <br/> Allocation List
-                        </h2>
-                        <div className="p-3 border border-gray-300 rounded-full">
-                            <Key size={20} className="text-[#0F1C20]"/>
-                        </div>
-                    </div>
-
-                    <div className={`${headerColor} rounded-2xl p-4 mb-6 shadow-sm`}>
-                        <h3 className="font-bold text-[#0F1C20] flex items-center gap-2">
-                            <Home size={18} /> {hotelName}
-                        </h3>
-                        <p className="text-[#0F1C20]/80 text-sm mt-1 font-normal">{hotelGuests}</p>
-                    </div>
-
-                    <div className="space-y-3">
-                        {filteredRooms.map((room, idx) => (
-                            <div key={idx} className="bg-white rounded-[24px] p-5 flex items-center gap-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                                <div className="w-12 h-12 rounded-full bg-[#F5F7F7] flex items-center justify-center text-[#0F1C20] shrink-0">
-                                    {room.icon === 'bed_double' ? <BedDouble size={24} /> : <Users size={24} />}
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <h4 className="font-bold text-[#0F1C20]">Room {room.id}</h4>
-                                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${room.id === 1 && hotel !== 'asai' ? 'bg-[#0F1C20] text-white' : 'bg-[#FF9F68]/20 text-[#FF9F68]'}`}>
-                                            {room.type}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-gray-600 font-bold">{room.name}</p>
-                                    <p className="text-xs text-gray-400 mt-0.5 font-normal">{room.beds} • {room.guests}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        };
-
-        const HotelsView = ({ onViewRooms }) => {
-            const openMap = (hotelName) => {
-                const query = encodeURIComponent(hotelName);
-                window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
-            };
-
-            return (
-                <div className="animate-fade-in px-6 pb-24 pt-24">
-                    <div className="flex justify-between items-end mb-6">
-                        <h2 className="text-3xl font-bold text-[#0F1C20] leading-none">
-                            Your <br/> Hotels
-                        </h2>
-                        <div className="p-3 border border-gray-300 rounded-full">
-                            <MapPin size={20} className="text-[#0F1C20]"/>
-                        </div>
-                    </div>
-
-                    <div className="mb-6">
-                        <div 
-                            onClick={() => openMap("SHIN Patara Living Hotel Bangkok")}
-                            className="bg-[#FF9F68] rounded-[24px] p-5 flex justify-between items-center cursor-pointer transition hover:bg-[#ff8a50] hover:shadow-md"
-                        >
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="bg-[#0F1C20] text-white text-[10px] px-2 py-0.5 rounded-full">Stop 1 • Arrival</span>
-                                </div>
-                                <h4 className="font-bold text-[#0F1C20] text-lg">SHIN Patara Living</h4>
-                                <p className="text-[#0F1C20]/70 text-sm font-normal">Feb 26 (01:15 AM check-in)</p>
-                            </div>
-                            <MapIcon size={20} className="text-[#0F1C20]" />
-                        </div>
-                    </div>
-
-                    <div 
-                        className="w-full aspect-[4/5] rounded-[40px] bg-[#0F1C20] relative mb-6 overflow-hidden group hover:shadow-xl transition-all"
-                    >
-                        <div 
-                            onClick={() => openMap("The Standard Hua Hin")}
-                            className="absolute inset-0 cursor-pointer"
-                        >
-                            <img 
-                                src="https://assets.hyatt.com/content/dam/hyatt/hyattdam/images/2025/05/16/1025/HUASH-P0016-Pool.jpg/HUASH-P0016-Pool.16x9.jpg" 
-                                alt="The Standard Hua Hin Pool" 
-                                className="w-full h-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105" 
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                        </div>
-                        
-                        <div className="absolute top-6 left-6 right-6 flex justify-between items-start z-10 pointer-events-none">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="bg-[#C4E0E0] text-[#0F1C20] text-[10px] font-bold px-2 py-0.5 rounded-full">Stop 2</span>
-                                </div>
-                                <h3 className="text-3xl font-bold text-white leading-tight drop-shadow-lg">The Standard<br/>Hua Hin</h3>
-                                <p className="text-white/90 font-medium drop-shadow-md">Feb 26 - 28</p>
-                            </div>
-                            <button className="w-12 h-12 bg-[#C4E0E0]/90 backdrop-blur rounded-full flex items-center justify-center text-[#0F1C20] shadow-lg pointer-events-auto">
-                                <MapIcon size={20} />
-                            </button>
-                        </div>
-
-                        <div className="absolute bottom-6 left-6 right-6 z-10 flex gap-2">
-                            <button 
-                                onClick={(e) => {
-                                    e.stopPropagation(); 
-                                    onViewRooms('huahin');
-                                }}
-                                className="flex-1 bg-white text-[#0F1C20] font-bold py-4 rounded-[20px] shadow-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Key size={18} />
-                                查看分房
-                            </button>
-                        </div>
-                    </div>
-
-                    <div 
-                        className="w-full aspect-[4/5] rounded-[40px] bg-[#0F1C20] relative mb-6 overflow-hidden group hover:shadow-xl transition-all"
-                    >
-                        <div 
-                            onClick={() => openMap("ASAI Bangkok Chinatown")}
-                            className="absolute inset-0 cursor-pointer"
-                        >
-                            <div className="w-full h-full bg-gray-800 relative">
-                                <img 
-                                    src="https://www.dusit.com/asai-bangkok-chinatown/wp-content/uploads/sites/51/cache/2025/03/ABCT-WEBSITE-2/573589606.jpg" 
-                                    onError={(e) => {e.target.src = "/api/placeholder/400/500"; e.target.style.opacity="0.5"}}
-                                    alt="ASAI Chinatown" 
-                                    className="w-full h-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105" 
-                                />
-                            </div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                        </div>
-                        
-                        <div className="absolute top-6 left-6 right-6 flex justify-between items-start z-10 pointer-events-none">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="bg-[#FF9F68] text-[#0F1C20] text-[10px] font-bold px-2 py-0.5 rounded-full">Stop 3</span>
-                                </div>
-                                <h3 className="text-3xl font-bold text-white leading-tight drop-shadow-lg">ASAI<br/>Chinatown</h3>
-                                <p className="text-white/90 font-medium drop-shadow-md">Feb 28 - Mar 2</p>
-                            </div>
-                            <button className="w-12 h-12 bg-[#FF9F68]/90 backdrop-blur rounded-full flex items-center justify-center text-[#0F1C20] shadow-lg pointer-events-auto">
-                                <MapIcon size={20} />
-                            </button>
-                        </div>
-
-                        <div className="absolute bottom-6 left-6 right-6 z-10 flex gap-2">
-                            <button 
-                                onClick={(e) => {
-                                    e.stopPropagation(); 
-                                    onViewRooms('asai');
-                                }}
-                                className="flex-1 bg-white text-[#0F1C20] font-bold py-4 rounded-[20px] shadow-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Key size={18} />
-                                查看分房
-                            </button>
-                        </div>
-                    </div>
-
-                </div>
-            );
-        };
-
         const MapView = () => {
             const maps = [
                 {
@@ -1454,10 +1457,14 @@
                                 className={`block ${map.color} rounded-[30px] p-6 shadow-lg transform transition-transform hover:scale-[1.02] relative overflow-hidden group min-h-[160px] flex flex-col justify-between`}
                             >
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full translate-x-10 -translate-y-10 blur-2xl"></div>
+                                
                                 <div className="flex justify-between items-start relative z-10">
-                                    <div className={`p-3 rounded-full bg-white/20 ${map.textColor} backdrop-blur-sm`}>{map.icon}</div>
+                                    <div className={`p-3 rounded-full bg-white/20 ${map.textColor} backdrop-blur-sm`}>
+                                        {map.icon}
+                                    </div>
                                     <ExternalLink size={20} className={`${map.textColor} opacity-60`} />
                                 </div>
+                                
                                 <div className="mt-4 relative z-10">
                                     <h3 className={`text-2xl font-bold ${map.textColor} mb-1`}>{map.title}</h3>
                                     <p className={`text-sm opacity-80 ${map.textColor} font-normal`}>{map.desc}</p>
@@ -1520,6 +1527,30 @@
 
             return (
                 <div className="animate-fade-in px-6 pb-24 pt-24">
+                     {/* NEW: Menu Translation Tool */}
+                    <a 
+                        href="https://thailingo.vercel.app/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="block bg-gradient-to-br from-[#FF9F68] to-[#ff8552] rounded-[24px] p-5 mb-4 shadow-lg transform transition-transform hover:scale-[1.02] active:scale-95 relative overflow-hidden group"
+                    >
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white rounded-full opacity-20 blur-xl"></div>
+                        <div className="relative z-10 flex items-center justify-between">
+                             <div className="flex items-center gap-3 text-[#0F1C20]">
+                                <div className="bg-white/30 p-2.5 rounded-full backdrop-blur-sm">
+                                    <ScanLine size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold leading-tight">泰國菜單翻譯機</h3>
+                                    <p className="text-[#0F1C20]/80 text-xs font-normal mt-0.5">拍照翻譯 • 點餐不求人 📸</p>
+                                </div>
+                             </div>
+                             <div className="bg-white/20 p-2 rounded-full">
+                                <ExternalLink size={18} className="text-[#0F1C20]" />
+                             </div>
+                        </div>
+                    </a>
+
                     {/* TDAC Alert Button */}
                     <a 
                         href="https://tdac.immigration.go.th/arrival-card/#/home" 
@@ -1602,7 +1633,6 @@
         };
 
         const ChatOverlay = ({ isOpen, onClose, currentModel, setCurrentModel }) => {
-            // 狀態儲存完整的對話歷史
             const [messages, setMessages] = useState([
                 { role: 'assistant', text: `您好！我是您的泰國旅遊助理 ✨，目前使用的是 ${getModelDisplayName(currentModel)} 模型。請問有什麼關於華欣或曼谷的問題嗎？` }
             ]);
@@ -1623,18 +1653,14 @@
 
             useEffect(scrollToBottom, [messages, isOpen]);
 
-            // 處理發送訊息 (現在會傳遞完整的 messages 歷史)
             const handleSend = async (textToSend = input) => {
                 if (!textToSend.trim() || loading) return;
-                
                 const userMessage = { role: 'user', text: textToSend.trim() };
-                const updatedMessages = [...messages, userMessage]; // 包含新訊息的完整歷史
-                
-                setMessages(updatedMessages); // 更新畫面顯示
+                setMessages(prev => [...prev, userMessage]);
                 setInput('');
                 setLoading(true);
                 
-                // Construct Context-Aware Prompt (隨 request 傳送給後端)
+                // Construct Context-Aware Prompt
                 const systemPrompt = `
                 你是一個專屬的旅遊助理，服務這趟 13 人的 "Thai Trip 2026" 泰國之旅。
                 以下是這次旅程的詳細資料，請根據這些資訊回答使用者的問題：
@@ -1656,9 +1682,7 @@
                 5. 若使用者詢問行程以外的資訊（例如：推薦餐廳、天氣預報、當地習俗、伴手禮建議），請務必使用 Google 搜尋功能來提供最新、最準確的建議，不要只侷限於上述資料。
                 `;
                 
-                // 🚨 將完整的 updatedMessages 傳給 API CALLER
-                const { text } = await callGeminiAPI(updatedMessages, systemPrompt, currentModel, true);
-
+                const { text } = await callGeminiAPI(userMessage.text, systemPrompt, currentModel, true);
                 setMessages(prev => [...prev, { role: 'assistant', text }]);
                 setLoading(false);
             };
