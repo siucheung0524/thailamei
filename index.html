@@ -155,7 +155,7 @@
                 desc: "Taoyuan Airport -> Bangkok",
                 icon: <Plane size={20} />,
                 events: [
-                    { time: "19:45", title: "桃園機場集合", desc: "TPE 桃園機場集合 (無網上報到，需臨櫃)", icon: "users" },
+                    { time: "19:45", title: "桃園機場集合", desc: "TPE 桃園機場集合 (無網上報到，需臨櫃)", icon: "users", participants: ['Tang', '品謙', 'chen', '鮪魚', '青青', '卉', '珮', '王八八', '蜜莉', '一涵', 'Yee', '靖榆', 'ㄓ'] },
                     { time: "21:15", title: "搭乘 SL395 起飛", desc: "前往曼谷廊曼機場 (DMK)", icon: "plane" },
                     { time: "00:15", title: "抵達曼谷 DMK", desc: "預計抵達時間 (跨日 2/26)", icon: "map-pin" },
                     { time: "01:15", title: "入住飯店", desc: "SHIN Patara Living Hotel", icon: "moon" }
@@ -185,8 +185,20 @@
                 icon: <Camera size={20} />,
                 events: [
                     { time: "06:30", title: "早餐 / 準備出發", desc: "參加三百峰者先行用餐", icon: "coffee" },
-                    { time: "08:00", title: "三百峰國家公園", desc: "私人探索之旅 (參加者出發)", icon: "camera" },
-                    { time: "09:00", title: "自由活動", desc: "沒參加行程者可享受飯店/按摩", icon: "sun" },
+                    { 
+                        time: "08:00", 
+                        title: "三百峰國家公園", 
+                        desc: "私人探索之旅 (參加者出發)", 
+                        icon: "camera",
+                        participants: ['Chen', '珮', '青青', '靖榆', '卉', '蜜莉', '一涵', 'Yee', 'ㄓ', '品謙']
+                    },
+                    { 
+                        time: "09:00", 
+                        title: "自由活動", 
+                        desc: "沒參加行程者可享受飯店/按摩", 
+                        icon: "sun",
+                        participants: ['鮪魚', '王八八', 'Tang']
+                    },
                     { time: "18:30", title: "集合逛夜市", desc: "Cicada + Tamarind Night Markets", icon: "shopping-bag" },
                     { time: "21:00", title: "按摩/購物", desc: "Let's Relax Spa 或 Blúport 大賣場", icon: "moon" }
                 ]
@@ -232,20 +244,17 @@
                     { time: "06:30", title: "飯店早餐", desc: "供應時間至 10:30", icon: "coffee" },
                     { 
                         time: "09:00", 
-                        title: "分隊行動 (早上)", 
-                        desc: (
-                        <ul className="space-y-2 mt-2">
-                            <li className="flex gap-2 items-start">
-                            <span className="shrink-0 font-bold bg-[#0F1C20] text-[#FF9F68] text-[10px] px-1.5 rounded py-0.5 mt-0.5">A隊</span>
-                            <span>09:00 鄭王廟參觀 + 體驗泰服</span>
-                            </li>
-                            <li className="flex gap-2 items-start">
-                            <span className="shrink-0 font-bold bg-[#0F1C20] text-[#FF9F68] text-[10px] px-1.5 rounded py-0.5 mt-0.5">B隊</span>
-                            <span>10:00 通羅、澎澎、Ekkamai 逛街</span>
-                            </li>
-                        </ul>
-                        ), 
-                        icon: "users" 
+                        title: "鄭王廟參觀 (A隊)", 
+                        desc: "09:00 鄭王廟參觀 + 體驗泰服",
+                        icon: "users",
+                        participants: ['靖榆', 'Yee', 'ㄓ', '蜜莉', '一涵', '王八八']
+                    },
+                    { 
+                        time: "10:00", 
+                        title: "通羅/Ekkamai 逛街 (B隊)", 
+                        desc: "10:00 通羅、澎澎、Ekkamai 逛街",
+                        icon: "shopping-bag",
+                        participants: ['青青', '珮', 'Chen', '鮪魚', '卉', 'Tang', '品謙']
                     },
                     { time: "12:00", title: "自由午餐", desc: "各自尋找喜愛的餐廳 (12:00-13:00)", icon: "utensils" },
                     { 
@@ -266,7 +275,13 @@
                         icon: "map" 
                     },
                     { time: "17:30", title: "晚餐 Inter Restaurants", desc: "現場排隊，享用道地泰菜，吃完繼續逛", icon: "utensils", link: "https://maps.app.goo.gl/hn1eX6SR5QDjM2L69" },
-                    { time: "20:00", title: "晚間活動", desc: "按摩 / 酒吧路跑 (Bar Us + Dry Wave + Spire) / BigC", icon: "moon" }
+                    { 
+                        time: "20:00", 
+                        title: "晚間活動", 
+                        desc: "按摩 / 酒吧路跑 (Bar Us + Dry Wave + Spire) / BigC", 
+                        icon: "moon",
+                        participants: ['Yee', '靖榆', '蜜莉', '品謙'] // 酒吧路跑成員
+                    }
                 ]
             },
             '3/2': {
@@ -284,7 +299,8 @@
                             <p>• 13:45 <strong>JX742</strong> 返回台北</p>
                         </div>
                         ), 
-                        icon: "plane" 
+                        icon: "plane",
+                        participants: ['ㄓ', '王八八', 'Chen', '鮪魚', '卉', '青青', '珮', '品謙']
                     },
                     { 
                         time: "09:30", 
@@ -298,7 +314,8 @@
                         </div>
                         ), 
                         icon: "shopping-bag",
-                        link: "https://maps.app.goo.gl/mn17o6roHwB87Cdy8"
+                        link: "https://maps.app.goo.gl/mn17o6roHwB87Cdy8",
+                        participants: ['Tang', '靖榆', '蜜莉', '一涵', 'Yee']
                     }
                 ]
             },
@@ -415,19 +432,23 @@
         };
 
         // --- GEMINI API CALLER (Client-Side Proxy to Serverless Function) ---
-        const callGeminiAPI = async (userQuery, systemPrompt, modelName, useSearch = true) => {
+        const callGeminiAPI = async (messages, systemPrompt, modelName, useSearch = true) => {
             try {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userQuery, systemPrompt, modelName, useSearch })
+                    // Send the full message history to the Vercel API Route
+                    body: JSON.stringify({ messages, systemPrompt, modelName, useSearch })
                 });
 
                 if (!response.ok) {
+                    // Fallback for preview environment where /api/chat doesn't exist
                     if (response.status === 404) {
                         return { text: "⚠️ 預覽模式無法使用 AI 功能。\n\n請將此專案部署至 Vercel，並在 Vercel 後台設定 GEMINI_API_KEY 環境變數，即可正常使用 AI 助理。", result: null };
                     }
-                    throw new Error(`API request failed: ${response.status}`);
+                    const errorDetails = await response.json().catch(() => ({}));
+                    const errorMessage = errorDetails.error || `API Request Failed (Status: ${response.status})`;
+                    return { text: `伺服器錯誤: ${errorMessage}`, result: null };
                 }
 
                 const result = await response.json();
@@ -436,38 +457,24 @@
 
             } catch (error) {
                 console.error("Gemini API Proxy error:", error);
-                return { text: "連線發生錯誤，請稍後再試。", result: null };
+                return { text: `連線發生錯誤: ${error.message}`, result: null };
             }
         };
         
         // --- Markdown Formatting Helper ---
         const renderSimpleMarkdown = (text) => {
             if (!text) return { __html: "" };
-            
-            // 1. Convert **bold** to <strong>bold</strong>
             let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-            // 2. Simple handling for lists and newlines
-            // Replace * followed by space at start of line with list item start
             html = html.replace(/^\s*\*\s+(.*)$/gm, '<li>$1</li>');
-            
-            // Group list items by checking if the line starts with <li>
             if (html.includes('<li>')) {
-                // Wrap consecutive <li> items in <ul>. This is a heuristic.
                 html = html.replace(/(<li>.*?<\/li>)/g, '\n$1\n');
                 html = html.replace(/(<li>.*?<\/li>\s*)+/gs, '<ul>$&</ul>');
             }
-            
-            // 3. Convert paragraphs (double newline) to <p> tags
-            // Replace remaining double newlines with closing/opening p tags
             html = html.replace(/\n\s*\n/g, '</p><p>');
-            // Wrap the whole thing in <p> tags if it's not already within a list
             if (!html.startsWith('<ul>')) {
                 html = `<p>${html}</p>`; 
             }
-            // Remove empty <p> tags
             html = html.replace(/<p>\s*<\/p>/g, '');
-            
             return { __html: html };
         };
 
@@ -818,10 +825,41 @@
             );
         };
 
+        // --- Participant List Modal ---
+        const ParticipantListView = ({ event, onClose }) => {
+            if (!event) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-[30px] p-6 w-full max-w-sm shadow-2xl animate-pulse-once">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 className="text-xl font-bold text-[#0F1C20]">{event.title}</h3>
+                                <p className="text-sm text-gray-500 font-normal mt-0.5">參與者名單 ({event.participants.length} 人)</p>
+                            </div>
+                            <button onClick={onClose} className="p-1 bg-gray-100 rounded-full hover:bg-gray-200 text-[#0F1C20]"><X size={20} /></button>
+                        </div>
+                        
+                        <div className="max-h-60 overflow-y-auto space-y-2 no-scrollbar">
+                            {event.participants.map((name, index) => (
+                                <div key={index} className="flex items-center gap-3 p-3 bg-[#F5F7F7] rounded-xl">
+                                    <Users size={16} className="text-[#FF9F68]" />
+                                    <span className="font-bold text-[#0F1C20]">{name}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <p className="text-[10px] text-gray-400 text-center mt-4">請準時於 {event.time} 集合。</p>
+                    </div>
+                </div>
+            );
+        };
+
+
         const ScheduleView = () => {
             const [selectedDay, setSelectedDay] = useState('2/25');
             const [touchStart, setTouchStart] = useState(0);
             const [touchEnd, setTouchEnd] = useState(0);
+            const [viewingParticipants, setViewingParticipants] = useState(null); // State for modal data
 
             const days = [
                 { date: '2/25', day: 'Wed', active: selectedDay === '2/25' },
@@ -914,11 +952,27 @@
                                             <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full ${idx === 0 ? 'bg-[#0F1C20]' : 'bg-white border-2 border-[#0F1C20]'}`}></div>
                                             <h4 className="font-bold text-lg leading-tight">{event.title}</h4>
                                             <div className="text-sm opacity-80 mt-1 font-normal">{event.desc}</div>
-                                            {event.link && (
-                                                <a href={event.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-2 text-xs font-bold bg-white/30 px-2 py-1 rounded-full hover:bg-white/50 transition-colors">
-                                                    Open Map <ArrowRight size={10} />
-                                                </a>
-                                            )}
+                                            
+                                            {/* Action Buttons Container */}
+                                            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                                                {/* Participant Button */}
+                                                {event.participants && (
+                                                    <button 
+                                                        onClick={() => setViewingParticipants(event)}
+                                                        className="inline-flex items-center gap-1 text-xs font-bold bg-[#0F1C20]/20 px-2 py-1 rounded-full hover:bg-[#0F1C20]/30 transition-colors text-[#0F1C20] w-fit"
+                                                    >
+                                                        <Users size={12} /> 
+                                                        {event.participants.length} 參與者
+                                                    </button>
+                                                )}
+
+                                                {/* Map Button */}
+                                                {event.link && (
+                                                    <a href={event.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold bg-white/30 px-2 py-1 rounded-full hover:bg-white/50 transition-colors w-fit">
+                                                        Open Map <ArrowRight size={10} />
+                                                    </a>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -931,6 +985,12 @@
                             </div>
                         </div>
                     </div>
+
+                    {/* Participant List Modal Renderer */}
+                    <ParticipantListView 
+                        event={viewingParticipants} 
+                        onClose={() => setViewingParticipants(null)} 
+                    />
                 </div>
             );
         };
@@ -1360,7 +1420,7 @@
                                 <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                                     {flightStatus.error ? <Wifi size={16} className="text-red-500" /> : <AlertCircle size={16} />}
                                 </div>
-                                <div className="text-xs text-gray-600 font-normal">
+                                <div className="text-xs text-gray-600">
                                     <span className="font-bold text-[#0F1C20] block mb-0.5">Note</span>
                                     {flight.note}
                                 </div>
@@ -1456,7 +1516,6 @@
             );
         };
 
-        // --- NotesView Component (with Translator Integration) ---
         const NotesView = ({ onFullScreenChange }) => {
             const [checklist, setChecklist] = useState([
                 { id: 1, text: "檢查護照效期 (至少 6 個月以上！)", checked: false },
@@ -1694,7 +1753,7 @@
                 5. 若使用者詢問行程以外的資訊（例如：推薦餐廳、天氣預報、當地習俗、伴手禮建議），請務必使用 Google 搜尋功能來提供最新、最準確的建議，不要只侷限於上述資料。
                 `;
                 
-                const { text } = await callGeminiAPI(userMessage.text, systemPrompt, currentModel, true);
+                const { text } = await callGeminiAPI(messages, systemPrompt, currentModel, true);
                 setMessages(prev => [...prev, { role: 'assistant', text }]);
                 setLoading(false);
             };
