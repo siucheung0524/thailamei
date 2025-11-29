@@ -415,48 +415,28 @@
         };
 
         // --- GEMINI API CALLER (Client-Side Proxy to Serverless Function) ---
-        // This function calls the Vercel API route instead of calling Google directly
-        const callGeminiAPI = async (messages, systemPrompt, modelName, useSearch = true) => {
+        const callGeminiAPI = async (userQuery, systemPrompt, modelName, useSearch = true) => {
             try {
-                // Set up timeout promise
-                const timeoutDuration = 30000; // 30 seconds
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error(`Timeout after ${timeoutDuration / 1000} seconds`)), timeoutDuration)
-                );
-
-                const fetchPromise = fetch('/api/chat', {
+                const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // Send the full message history to the Vercel API Route
-                    body: JSON.stringify({ messages, systemPrompt, modelName, useSearch })
+                    body: JSON.stringify({ userQuery, systemPrompt, modelName, useSearch })
                 });
 
-                const response = await Promise.race([fetchPromise, timeoutPromise]);
-                
-                if (response instanceof Error && response.message.includes('Timeout')) {
-                     return { text: "連線逾時，伺服器未在時間內回應。請再試一次。", result: null };
-                }
-
                 if (!response.ok) {
-                    // Fallback for preview environment where /api/chat doesn't exist
                     if (response.status === 404) {
                         return { text: "⚠️ 預覽模式無法使用 AI 功能。\n\n請將此專案部署至 Vercel，並在 Vercel 後台設定 GEMINI_API_KEY 環境變數，即可正常使用 AI 助理。", result: null };
                     }
-                    // Attempt to read the error details from the server response
-                    const errorDetails = await response.json().catch(() => ({}));
-                    const errorMessage = errorDetails.error || `API Request Failed (Status: ${response.status})`;
-
-                    return { text: `伺服器錯誤: ${errorMessage}`, result: null };
+                    throw new Error(`API request failed: ${response.status}`);
                 }
 
                 const result = await response.json();
-                // Extract text from Gemini response structure
                 const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "抱歉，AI 暫時無法提供答案。";
                 return { text, result };
 
             } catch (error) {
                 console.error("Gemini API Proxy error:", error);
-                return { text: `連線發生錯誤: ${error.message}`, result: null };
+                return { text: "連線發生錯誤，請稍後再試。", result: null };
             }
         };
         
@@ -1380,7 +1360,7 @@
                                 <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                                     {flightStatus.error ? <Wifi size={16} className="text-red-500" /> : <AlertCircle size={16} />}
                                 </div>
-                                <div className="text-xs text-gray-600">
+                                <div className="text-xs text-gray-600 font-normal">
                                     <span className="font-bold text-[#0F1C20] block mb-0.5">Note</span>
                                     {flight.note}
                                 </div>
@@ -1476,7 +1456,8 @@
             );
         };
 
-        const NotesView = () => {
+        // --- NotesView Component (with Translator Integration) ---
+        const NotesView = ({ onFullScreenChange }) => {
             const [checklist, setChecklist] = useState([
                 { id: 1, text: "檢查護照效期 (至少 6 個月以上！)", checked: false },
                 { id: 2, text: "先跟主管請假 / 告知", checked: false },
@@ -1488,10 +1469,22 @@
                 { id: 8, text: "防曬乳 / 墨鏡 / 帽子", checked: false },
             ]);
 
+            const [showTranslator, setShowTranslator] = useState(false);
+
             const toggleCheck = (id) => {
                 setChecklist(checklist.map(item => 
                     item.id === id ? { ...item, checked: !item.checked } : item
                 ));
+            };
+
+            const handleOpenTranslator = () => {
+                setShowTranslator(true);
+                onFullScreenChange(true); // Notify parent to hide header/nav
+            };
+
+            const handleCloseTranslator = () => {
+                setShowTranslator(false);
+                onFullScreenChange(false); // Notify parent to show header/nav
             };
 
             const infoCards = [
@@ -1525,14 +1518,33 @@
                 }
             ];
 
+            if (showTranslator) {
+                return (
+                    <div className="fixed inset-0 z-[100] bg-white animate-fade-in">
+                        <iframe 
+                            src="https://thailingo.vercel.app/" 
+                            className="w-full h-full border-none" 
+                            title="Thai AI Translator"
+                            allow="camera; microphone; clipboard-read; clipboard-write" 
+                        />
+                        
+                        <button 
+                            onClick={handleCloseTranslator}
+                            className="absolute bottom-8 left-6 bg-[#0F1C20] text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 hover:bg-black transition-all active:scale-95 backdrop-blur-sm border border-white/10 z-[110]"
+                        >
+                            <ChevronLeft size={20} />
+                            <span className="font-bold">返回</span>
+                        </button>
+                    </div>
+                );
+            }
+
             return (
                 <div className="animate-fade-in px-6 pb-24 pt-24">
                      {/* NEW: Menu Translation Tool */}
-                    <a 
-                        href="https://thailingo.vercel.app/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="block bg-gradient-to-br from-[#FF9F68] to-[#ff8552] rounded-[24px] p-5 mb-4 shadow-lg transform transition-transform hover:scale-[1.02] active:scale-95 relative overflow-hidden group"
+                    <div 
+                        onClick={handleOpenTranslator}
+                        className="block bg-gradient-to-br from-[#FF9F68] to-[#ff8552] rounded-[24px] p-5 mb-4 shadow-lg transform transition-transform hover:scale-[1.02] active:scale-95 relative overflow-hidden group cursor-pointer"
                     >
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-white rounded-full opacity-20 blur-xl"></div>
                         <div className="relative z-10 flex items-center justify-between">
@@ -1541,15 +1553,15 @@
                                     <ScanLine size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold leading-tight">泰國菜單翻譯機</h3>
-                                    <p className="text-[#0F1C20]/80 text-xs font-normal mt-0.5">拍照翻譯 • 點餐不求人 📸</p>
+                                    <h3 className="text-xl font-bold leading-tight">泰文AI翻譯機</h3>
+                                    <p className="text-[#0F1C20]/80 text-xs font-normal mt-0.5">全能翻譯 • 拍照/語音/文字皆可 🇹🇭</p>
                                 </div>
                              </div>
                              <div className="bg-white/20 p-2 rounded-full">
                                 <ExternalLink size={18} className="text-[#0F1C20]" />
                              </div>
                         </div>
-                    </a>
+                    </div>
 
                     {/* TDAC Alert Button */}
                     <a 
@@ -1788,6 +1800,7 @@
             const [selectedHotelForRooms, setSelectedHotelForRooms] = useState('huahin'); 
             const [showChat, setShowChat] = useState(false);
             const [currentModel, setCurrentModel] = useState(LITE_API); // Initialize with Lite Model
+            const [isFullScreen, setIsFullScreen] = useState(false); // NEW: Full screen state for translator
 
             // Background style to match the mint aesthetic
             const bgStyle = {
@@ -1804,29 +1817,31 @@
                         <div className="absolute top-[-100px] left-[-100px] w-[300px] h-[300px] bg-white opacity-40 blur-[80px] rounded-full pointer-events-none"></div>
                         <div className="absolute bottom-[100px] right-[-50px] w-[200px] h-[200px] bg-[#FF9F68] opacity-20 blur-[60px] rounded-full pointer-events-none"></div>
 
-                        {/* Header takes absolute position now */}
-                        <div className="absolute top-0 left-0 right-0 z-30 pointer-events-none">
-                            <Header 
-                                title={
-                                    activeTab === 'home' ? '' : 
-                                    activeTab === 'schedule' ? '行程' :
-                                    activeTab === 'hotels' ? '住宿' : 
-                                    activeTab === 'room_list' ? '分房名單' : 
-                                    activeTab === 'map' ? '地圖' :
-                                    activeTab === 'notes' ? '旅行須知' :
-                                    '航班資訊'
-                                }
-                                showBack={activeTab !== 'home'}
-                                onBack={() => {
-                                    if (activeTab === 'room_list') {
-                                        setActiveTab('hotels');
-                                    } else {
-                                        setActiveTab('home');
+                        {/* Header - Hidden in full screen mode */}
+                        {!isFullScreen && (
+                            <div className="absolute top-0 left-0 right-0 z-30 pointer-events-none">
+                                <Header 
+                                    title={
+                                        activeTab === 'home' ? '' : 
+                                        activeTab === 'schedule' ? '行程' :
+                                        activeTab === 'hotels' ? '住宿' : 
+                                        activeTab === 'room_list' ? '分房名單' : 
+                                        activeTab === 'map' ? '地圖' :
+                                        activeTab === 'notes' ? '旅行須知' :
+                                        '航班資訊'
                                     }
-                                }}
-                                onOpenChat={() => setShowChat(true)}
-                            />
-                        </div>
+                                    showBack={activeTab !== 'home'}
+                                    onBack={() => {
+                                        if (activeTab === 'room_list') {
+                                            setActiveTab('hotels');
+                                        } else {
+                                            setActiveTab('home');
+                                        }
+                                    }}
+                                    onOpenChat={() => setShowChat(true)}
+                                />
+                            </div>
+                        )}
 
                         {/* Main takes remaining height and scrolls */}
                         <main className="flex-1 overflow-y-auto no-scrollbar relative z-10">
@@ -1839,10 +1854,11 @@
                             {activeTab === 'room_list' && <RoomAllocationView hotel={selectedHotelForRooms} />}
                             {activeTab === 'tickets' && <TicketView />}
                             {activeTab === 'map' && <MapView />}
-                            {activeTab === 'notes' && <NotesView />}
+                            {activeTab === 'notes' && <NotesView onFullScreenChange={setIsFullScreen} />}
                         </main>
 
-                        <PillNav activeTab={activeTab === 'room_list' ? 'hotels' : activeTab} setActiveTab={setActiveTab} />
+                        {/* Pill Nav - Hidden in full screen mode */}
+                        {!isFullScreen && <PillNav activeTab={activeTab === 'room_list' ? 'hotels' : activeTab} setActiveTab={setActiveTab} />}
                         
                         <ChatOverlay 
                             isOpen={showChat} 
