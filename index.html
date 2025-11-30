@@ -1605,7 +1605,7 @@
                         onClick={handleOpenTranslator}
                         className="block bg-gradient-to-br from-[#FF9F68] to-[#ff8552] rounded-[24px] p-5 mb-4 shadow-lg transform transition-transform hover:scale-[1.02] active:scale-95 relative overflow-hidden group cursor-pointer"
                     >
-                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white rounded-full opacity-20 blur-xl"></div>
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white opacity-20 blur-xl"></div>
                         <div className="relative z-10 flex items-center justify-between">
                              <div className="flex items-center gap-3 text-[#0F1C20]">
                                 <div className="bg-white/30 p-2.5 rounded-full backdrop-blur-sm">
@@ -1726,12 +1726,16 @@
 
             const handleSend = async (textToSend = input) => {
                 if (!textToSend.trim() || loading) return;
+                
+                // 1. Add user message to history
                 const userMessage = { role: 'user', text: textToSend.trim() };
-                setMessages(prev => [...prev, userMessage]);
+                const newMessages = [...messages, userMessage];
+                setMessages(newMessages);
+                
                 setInput('');
                 setLoading(true);
                 
-                // Construct Context-Aware Prompt
+                // 2. Construct Context-Aware Prompt
                 const systemPrompt = `
                 你是一個專屬的旅遊助理，服務這趟 13 人的 "Thai Trip 2026" 泰國之旅。
                 以下是這次旅程的詳細資料，請根據這些資訊回答使用者的問題：
@@ -1753,7 +1757,8 @@
                 5. 若使用者詢問行程以外的資訊（例如：推薦餐廳、天氣預報、當地習俗、伴手禮建議），請務必使用 Google 搜尋功能來提供最新、最準確的建議，不要只侷限於上述資料。
                 `;
                 
-                const { text } = await callGeminiAPI(messages, systemPrompt, currentModel, true);
+                // 3. Call API with the full message history
+                const { text } = await callGeminiAPI(newMessages, systemPrompt, currentModel, true);
                 setMessages(prev => [...prev, { role: 'assistant', text }]);
                 setLoading(false);
             };
