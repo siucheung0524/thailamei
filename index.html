@@ -147,8 +147,7 @@
             return 'Gemini 2.5 Flash Lite';
         };
 
-        // --- Global Data Sources (DEFINED FIRST TO AVOID REFERENCE ERRORS) ---
-        
+        // --- Global Data Sources ---
         const TRIP_DATA = {
             '2/25': {
                 title: "Departure Night",
@@ -711,7 +710,7 @@
             );
         };
 
-        const HomeView = ({ setActiveTab, openTranslator }) => {
+        const HomeView = ({ setActiveTab, onOpenTranslator }) => {
             const timeLeft = useCountdown('2026-02-25T19:45:00');
             const upcomingDay = '2/25';
             const upcomingData = TRIP_DATA[upcomingDay];
@@ -778,7 +777,7 @@
                     <div className="mb-4 px-6">
                         {/* NEW: Translator Button for Home View */}
                         <div 
-                            onClick={openTranslator}
+                            onClick={onOpenTranslator}
                             className="block bg-gradient-to-br from-[#FF9F68] to-[#ff8552] rounded-[24px] p-5 mb-4 shadow-lg transform transition-transform hover:scale-[1.02] active:scale-95 relative overflow-hidden group cursor-pointer"
                         >
                             <div className="absolute -right-4 -top-4 w-24 h-24 bg-white opacity-20 blur-xl"></div>
@@ -1539,7 +1538,8 @@
             );
         };
 
-        const NotesView = ({ onFullScreenChange }) => {
+        // --- NotesView Component (with Translator Integration) ---
+        const NotesView = ({ onOpenTranslator }) => {
             const [checklist, setChecklist] = useState([
                 { id: 1, text: "檢查護照效期 (至少 6 個月以上！)", checked: false },
                 { id: 2, text: "先跟主管請假 / 告知", checked: false },
@@ -1551,22 +1551,10 @@
                 { id: 8, text: "防曬乳 / 墨鏡 / 帽子", checked: false },
             ]);
 
-            const [showTranslator, setShowTranslator] = useState(false);
-
             const toggleCheck = (id) => {
                 setChecklist(checklist.map(item => 
                     item.id === id ? { ...item, checked: !item.checked } : item
                 ));
-            };
-
-            const handleOpenTranslator = () => {
-                setShowTranslator(true);
-                onFullScreenChange(true); // Notify parent to hide header/nav
-            };
-
-            const handleCloseTranslator = () => {
-                setShowTranslator(false);
-                onFullScreenChange(false); // Notify parent to show header/nav
             };
 
             const infoCards = [
@@ -1600,35 +1588,14 @@
                 }
             ];
 
-            if (showTranslator) {
-                return (
-                    <div className="fixed inset-0 z-[100] bg-white animate-fade-in">
-                        <iframe 
-                            src="https://thailingo.vercel.app/" 
-                            className="w-full h-full border-none" 
-                            title="Thai AI Translator"
-                            allow="camera; microphone; clipboard-read; clipboard-write" 
-                        />
-                        
-                        <button 
-                            onClick={handleCloseTranslator}
-                            className="absolute bottom-8 left-6 bg-[#0F1C20] text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 hover:bg-black transition-all active:scale-95 backdrop-blur-sm border border-white/10 z-[110]"
-                        >
-                            <ChevronLeft size={20} />
-                            <span className="font-bold">返回</span>
-                        </button>
-                    </div>
-                );
-            }
-
             return (
                 <div className="animate-fade-in px-6 pb-24 pt-24">
                      {/* NEW: Menu Translation Tool */}
                     <div 
-                        onClick={handleOpenTranslator}
+                        onClick={onOpenTranslator}
                         className="block bg-gradient-to-br from-[#FF9F68] to-[#ff8552] rounded-[24px] p-5 mb-4 shadow-lg transform transition-transform hover:scale-[1.02] active:scale-95 relative overflow-hidden group cursor-pointer"
                     >
-                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white opacity-20 blur-xl"></div>
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white rounded-full opacity-20 blur-xl"></div>
                         <div className="relative z-10 flex items-center justify-between">
                              <div className="flex items-center gap-3 text-[#0F1C20]">
                                 <div className="bg-white/30 p-2.5 rounded-full backdrop-blur-sm">
@@ -1880,20 +1847,56 @@
             );
         };
 
+        // --- Translator Overlay Component ---
+        const TranslatorOverlay = ({ isOpen, onClose }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 z-[100] bg-white animate-fade-in">
+                    <iframe 
+                        src="https://thailingo.vercel.app/" 
+                        className="w-full h-full border-none" 
+                        title="Thai AI Translator"
+                        allow="camera; microphone; clipboard-read; clipboard-write" 
+                    />
+                    
+                    <button 
+                        onClick={onClose}
+                        className="absolute bottom-8 left-6 bg-[#0F1C20] text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 hover:bg-black transition-all active:scale-95 backdrop-blur-sm border border-white/10 z-[110]"
+                    >
+                        <ChevronLeft size={20} />
+                        <span className="font-bold">返回</span>
+                    </button>
+                </div>
+            );
+        };
+
         // --- Main App Component ---
 
         const App = () => {
             const [activeTab, setActiveTab] = useState('home');
             const [selectedHotelForRooms, setSelectedHotelForRooms] = useState('huahin'); 
             const [showChat, setShowChat] = useState(false);
-            const [currentModel, setCurrentModel] = useState(LITE_API); // Initialize with Lite Model
-            const [isFullScreen, setIsFullScreen] = useState(false); // NEW: Full screen state for translator
+            const [showTranslator, setShowTranslator] = useState(false); // NEW: Translator State
+            const [currentModel, setCurrentModel] = useState(LITE_API);
+            const [isFullScreen, setIsFullScreen] = useState(false); // Controls header/nav visibility
 
             // Background style to match the mint aesthetic
             const bgStyle = {
                 backgroundColor: '#C4E0E0', 
                 minHeight: '100vh',
                 fontFamily: '"Inter", sans-serif',
+            };
+            
+            // Handler for opening translator (used by HomeView and NotesView)
+            const handleOpenTranslator = () => {
+                setShowTranslator(true);
+                setIsFullScreen(true);
+            };
+
+            const handleCloseTranslator = () => {
+                setShowTranslator(false);
+                setIsFullScreen(false);
             };
 
             return (
@@ -1932,7 +1935,7 @@
 
                         {/* Main takes remaining height and scrolls */}
                         <main className="flex-1 overflow-y-auto no-scrollbar relative z-10">
-                            {activeTab === 'home' && <HomeView setActiveTab={setActiveTab} openTranslator={() => {setActiveTab('notes'); setIsFullScreen(true); }} />}
+                            {activeTab === 'home' && <HomeView setActiveTab={setActiveTab} onOpenTranslator={handleOpenTranslator} />}
                             {activeTab === 'schedule' && <ScheduleView />}
                             {activeTab === 'hotels' && <HotelsView onViewRooms={(hotel) => {
                                 setSelectedHotelForRooms(hotel);
@@ -1941,17 +1944,23 @@
                             {activeTab === 'room_list' && <RoomAllocationView hotel={selectedHotelForRooms} />}
                             {activeTab === 'tickets' && <TicketView />}
                             {activeTab === 'map' && <MapView />}
-                            {activeTab === 'notes' && <NotesView onFullScreenChange={setIsFullScreen} />}
+                            {activeTab === 'notes' && <NotesView onOpenTranslator={handleOpenTranslator} />}
                         </main>
 
                         {/* Pill Nav - Hidden in full screen mode */}
                         {!isFullScreen && <PillNav activeTab={activeTab === 'room_list' ? 'hotels' : activeTab} setActiveTab={setActiveTab} />}
                         
+                        {/* Overlays */}
                         <ChatOverlay 
                             isOpen={showChat} 
                             onClose={() => setShowChat(false)} 
                             currentModel={currentModel}
                             setCurrentModel={setCurrentModel}
+                        />
+                        
+                        <TranslatorOverlay 
+                            isOpen={showTranslator} 
+                            onClose={handleCloseTranslator} 
                         />
                     </div>
                 </div>
