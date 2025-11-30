@@ -711,7 +711,7 @@
             );
         };
 
-        const HomeView = ({ setActiveTab }) => {
+        const HomeView = ({ setActiveTab, openTranslator }) => {
             const timeLeft = useCountdown('2026-02-25T19:45:00');
             const upcomingDay = '2/25';
             const upcomingData = TRIP_DATA[upcomingDay];
@@ -776,6 +776,29 @@
                     <WeatherCard />
 
                     <div className="mb-4 px-6">
+                        {/* NEW: Translator Button for Home View */}
+                        <div 
+                            onClick={openTranslator}
+                            className="block bg-gradient-to-br from-[#FF9F68] to-[#ff8552] rounded-[24px] p-5 mb-4 shadow-lg transform transition-transform hover:scale-[1.02] active:scale-95 relative overflow-hidden group cursor-pointer"
+                        >
+                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-white opacity-20 blur-xl"></div>
+                            <div className="relative z-10 flex items-center justify-between">
+                                <div className="flex items-center gap-3 text-[#0F1C20]">
+                                    <div className="bg-white/30 p-2.5 rounded-full backdrop-blur-sm">
+                                        <ScanLine size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold leading-tight">泰文AI翻譯機</h3>
+                                        <p className="text-[#0F1C20]/80 text-xs font-normal mt-0.5">全能翻譯 • 拍照/語音/文字皆可 🇹🇭</p>
+                                    </div>
+                                </div>
+                                <div className="bg-white/20 p-2 rounded-full">
+                                    <ExternalLink size={18} className="text-[#0F1C20]" />
+                                </div>
+                            </div>
+                        </div>
+                        {/* END NEW: Translator Button for Home View */}
+
                         <div className="flex justify-between items-end mb-4">
                             <h3 className="text-xl font-bold text-[#0F1C20]">行程預覽 (Up Next)</h3>
                             <span 
@@ -1909,7 +1932,7 @@
 
                         {/* Main takes remaining height and scrolls */}
                         <main className="flex-1 overflow-y-auto no-scrollbar relative z-10">
-                            {activeTab === 'home' && <HomeView setActiveTab={setActiveTab} />}
+                            {activeTab === 'home' && <HomeView setActiveTab={setActiveTab} openTranslator={() => {setActiveTab('notes'); setIsFullScreen(true); }} />}
                             {activeTab === 'schedule' && <ScheduleView />}
                             {activeTab === 'hotels' && <HotelsView onViewRooms={(hotel) => {
                                 setSelectedHotelForRooms(hotel);
