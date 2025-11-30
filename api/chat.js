@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
-  // 1. 設定 CORS 標頭，允許跨域請求 (解決本地測試或網域問題)
+  // 1. 設定 CORS 標頭，允許跨域請求
   res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*'); // 允許所有來源，部署後建議改為您的 Vercel 域名
+  res.setHeader('Access-Control-Allow-Origin', 'thailamei.vercel.app'); // 部署到正式環境後，請將 * 替換為您的 Vercel 域名
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
@@ -13,7 +13,6 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // 只允許 POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -29,6 +28,7 @@ export default async function handler(req, res) {
 
   try {
     // 3. 轉換對話歷史格式 (前端: user/assistant -> Gemini API: user/model)
+    // 這裡我們將整個歷史記錄陣列轉換為 contents 結構
     const contents = messages.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user', // Gemini API 使用 'model'
       parts: [{ text: msg.text }]
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: contents, // 傳遞轉換後的整個對話歷史
+        contents: contents, // <-- 傳遞轉換後的整個對話歷史
         systemInstruction: { parts: [{ text: systemPrompt }] },
         tools: useSearch ? [{ "google_search": {} }] : undefined
       })
